@@ -1,0 +1,33 @@
+activity_id,category,name,met,speed_kmh,unit,fun_factor,originality_factor,difficulty_factor,is_commute_friendly,source,status
+
+walk,walking,Walking,4.0,5.0,km,4,1,2,TRUE,Adult Compendium 2024,active
+walk_brisk,walking,Brisk Walking,5.0,6.4,km,5,2,3,TRUE,Adult Compendium 2024,active
+nordic,walking,Nordic Walking,4.8,6.0,km,6,5,4,TRUE,Adult Compendium 2024,active
+jog,walking,Jogging,7.0,8.0,km,6,2,5,TRUE,Adult Compendium 2024,active
+run,walking,Running,9.8,9.7,km,5,2,8,TRUE,Adult Compendium 2024,active
+
+cycle_commute,cycling,Cycling to Work (self-selected),6.8,20.0,km,7,3,4,TRUE,Adult Compendium 2024,active
+cycle_easy,cycling,Cycling Leisure,5.8,15.0,km,6,2,3,TRUE,Adult Compendium 2024,active
+cycle_fast,cycling,Cycling Fast,10.0,25.0,km,8,4,7,TRUE,Adult Compendium 2024,active
+ebike_light,cycling,E-Bike Light Assist,6.0,22.0,km,7,3,2,TRUE,Adult Compendium 2024,active
+ebike_high,cycling,E-Bike High Assist,4.0,25.0,km,7,4,1,TRUE,Adult Compendium 2024,active
+
+rollerblade,wheels,Rollerblading,7.5,14.4,km,9,8,6,TRUE,Adult Compendium 2024,active
+rollerskate,wheels,Roller Skating,7.0,10.0,km,8,7,5,TRUE,Adult Compendium 2024,active
+skateboard,wheels,Skateboard/Longboard,8.3,16.0,km,8,8,5,TRUE,Adult Compendium 2024,active
+
+swim_easy,water,Swimming Leisurely,6.0,3.0,km,7,8,6,FALSE,Adult Compendium 2024,active
+kayak,water,Kayaking,5.0,6.0,km,9,9,5,TRUE,Adult Compendium 2024,active
+canoe,water,Canoeing,5.8,6.4,km,8,8,5,TRUE,Adult Compendium 2024,active
+sup,water,Stand-Up Paddleboard,6.5,5.0,km,10,10,6,TRUE,Adult Compendium 2024,active
+
+xcski,winter,Cross-Country Skiing,8.5,7.0,km,9,9,7,TRUE,Adult Compendium 2024,active
+snowshoe,winter,Snowshoeing,5.3,4.0,km,8,7,6,TRUE,Adult Compendium 2024,active
+ice_skate_easy,winter,Ice Skating ≤9 mph,7.0,12.0,km,9,7,5,TRUE,Adult Compendium 2024,active
+
+stairs_general,stairs,Stair Climbing General,6.8,,storeys,3,6,5,TRUE,Adult Compendium 2024,active
+stairs_fast,stairs,Stair Climbing Fast,9.3,,storeys,3,7,8,TRUE,Adult Compendium 2024,active
+stairs_descend,stairs,Descending Stairs,3.5,,storeys,2,4,1,TRUE,Adult Compendium 2024,active
+
+elliptical,fitness,Elliptical Trainer Moderate,5.0,,minutes,5,2,3,FALSE,Adult Compendium 2024,active
+rowing,fitness,Rowing Moderate,7.0,,minutes,6,3,6,FALSE,Adult Compendium 2024,active
