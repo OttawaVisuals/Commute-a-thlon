@@ -1,0 +1,12 @@
+metric_id,name,description
+
+met_minutes,Total MET Minutes,Activity effort score
+active_minutes,Active Minutes,Sum of activity durations
+transition_minutes,Transition Minutes,Changing or travel between activities
+elapsed_minutes,Total Commute Time,Active plus transitions
+distance_km,Total Distance,All activities combined
+storeys_climbed,Storeys Climbed,Vertical challenge score
+fun_score,Fun Score,Crowdsourced fun value
+originality_score,Originality Score,Crowdsourced originality value
+completion_percent,Target Completion %,Compared to required effort
+activity_count,Activity Count,Number of activity types
