@@ -1,0 +1,9 @@
+category_id,name,sort_order,icon
+walking,Walking & Running,1,person-walking
+cycling,Cycling,2,bicycle
+winter,Winter Sports,3,snowflake
+water,Water Sports,4,water
+wheels,Wheeled Sports,5,wheel
+stairs,Stairs,6,stairs
+fitness,Fitness Equipment,7,dumbbell
+other,Other Activities,8,star
