@@ -26,6 +26,7 @@
   --warn:#b4531f;
   --radius:4px;
   --shadow:0 1px 0 rgba(20,32,43,.04), 0 2px 8px rgba(20,32,43,.05);
+  --content-w:1200px;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -34,8 +35,9 @@ body{
   color:var(--ink);
   font-family:Inter,system-ui,sans-serif;
   font-size:15px;
-  line-height:1.5;
+  line-height:1.45;
   -webkit-font-smoothing:antialiased;
+  padding-bottom:74px; /* clearance for the fixed submit bar */
 }
 h1,h2,h3{font-family:"Space Grotesk",sans-serif;font-weight:600;letter-spacing:-0.01em;margin:0}
 .mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
@@ -43,132 +45,148 @@ a{color:var(--swim)}
 button{font-family:inherit}
 :focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 
-/* ---- masthead: the commute line ---- */
+/* ---- masthead: mini mirror of the distance split ---- */
 header.mast{
   background:var(--ink);color:var(--paper);
-  padding:22px 20px 26px;
+  padding:14px 20px 16px;
 }
-.mast-inner{max-width:1400px;margin:0 auto}
+.mast-inner{max-width:var(--content-w);margin:0 auto}
 .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#9fb1bc}
-.mast h1{font-size:clamp(28px,4vw,44px);margin:2px 0 14px;color:#fff}
-/* transit line signature */
-.line{display:flex;align-items:center;gap:0;margin-top:6px;flex-wrap:wrap}
-.seg-line{display:flex;align-items:center;flex:1;min-width:220px}
-.node{width:12px;height:12px;border-radius:50%;background:var(--paper);flex:none;z-index:2;border:2px solid var(--ink)}
-.bar{height:6px;flex:1;position:relative;overflow:hidden;background:#2b3a46}
-.bar > span{position:absolute;inset:0;width:0;transition:width .4s ease}
-.seg-swim .bar>span{background:var(--swim)}
-.seg-bike .bar>span{background:var(--bike)}
-.seg-run  .bar>span{background:var(--run)}
-.seg-label{font-family:"IBM Plex Mono",monospace;font-size:11px;color:#9fb1bc;padding:0 8px;white-space:nowrap}
-@media (prefers-reduced-motion:reduce){.bar>span{transition:none}}
+.mast h1{font-size:clamp(22px,3.4vw,32px);margin:2px 0 10px;color:#fff}
+.line{display:flex;align-items:center;gap:10px;margin-top:2px}
+.ml-track{position:relative;flex:1;height:6px;background:#2b3a46;border-radius:3px;overflow:hidden}
+.seg-label{font-family:"IBM Plex Mono",monospace;font-size:11px;color:#9fb1bc;white-space:nowrap}
 
-/* ---- layout ---- */
-main{max-width:1400px;margin:0 auto;padding:20px;display:grid;grid-template-columns:1fr;gap:18px}
-@media(min-width:960px){main{grid-template-columns:minmax(0,1.5fr) minmax(320px,1fr)}}
+/* ---- layout: single column, sized for a laptop screen ---- */
+main{max-width:var(--content-w);margin:0 auto;padding:16px 20px;display:grid;gap:14px}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
-.panel > .phead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.panel > .phead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line)}
 .phead .idx{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted)}
-.phead h2{font-size:17px}
-.pbody{padding:18px}
-.stack{display:grid;gap:18px}
-.sticky-col{display:grid;gap:18px;align-content:start}
-@media(min-width:960px){.sticky-col{position:sticky;top:14px}}
+.phead h2{font-size:16px}
+.pbody{padding:16px}
+
+/* two/four columns for form fields at this width, still a single-column page */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:820px){.grid2,.grid4{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.grid2,.grid4{grid-template-columns:1fr}}
+
+/* collapsible section (route sketch) */
+details.panel{padding:0}
+details.panel > summary{cursor:pointer;list-style:none}
+details.panel > summary::-webkit-details-marker{display:none}
+.summary-toggle{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);white-space:nowrap}
 
 /* ---- forms ---- */
-label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:0 0 5px}
+label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:0 0 4px}
 input,select,textarea{
   width:100%;font-family:inherit;font-size:15px;color:var(--ink);
   background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);
-  padding:9px 10px;
+  padding:8px 9px;
 }
 input:focus,select:focus,textarea:focus{border-color:var(--ink);background:#fff}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
-@media(max-width:560px){.grid3{grid-template-columns:1fr 1fr}}
-.field{margin-bottom:12px}
-.hint{font-size:12px;color:var(--muted);margin-top:4px;font-weight:400;text-transform:none;letter-spacing:0}
+.field{margin-bottom:9px}
+.field:last-child{margin-bottom:0}
+.hint{font-size:12px;color:var(--muted);margin-top:3px;font-weight:400;text-transform:none;letter-spacing:0}
 
 /* buttons */
 .btn{cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:#fff;
-  padding:9px 14px;border-radius:var(--radius);font-weight:600;font-size:14px}
+  padding:8px 13px;border-radius:var(--radius);font-weight:600;font-size:14px}
 .btn:hover{background:#0c1720}
 .btn.ghost{background:transparent;color:var(--ink)}
 .btn.ghost:hover{background:var(--paper)}
-.btn.sm{padding:6px 10px;font-size:13px}
+.btn.sm{padding:5px 9px;font-size:13px}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 .btn-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 
 /* format toggle */
 .seg-toggle{display:inline-flex;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
-.seg-toggle button{background:#fff;border:0;padding:8px 14px;cursor:pointer;font-weight:600;font-size:14px;color:var(--muted)}
+.seg-toggle button{background:#fff;border:0;padding:7px 13px;cursor:pointer;font-weight:600;font-size:14px;color:var(--muted)}
 .seg-toggle button[aria-pressed="true"]{background:var(--ink);color:#fff}
 
-/* target bars */
-.tbars{display:grid;gap:10px;margin-top:14px}
-.tbar{display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:10px}
-.tbar .cap{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
-.tbar .track{height:22px;background:var(--paper);border:1px solid var(--line);border-radius:3px;overflow:hidden}
-.tbar .fill{height:100%;width:0}
-.tbar.swim .cap{color:var(--swim)} .tbar.swim .fill{background:var(--swim)}
-.tbar.bike .cap{color:var(--bike)} .tbar.bike .fill{background:var(--bike)}
-.tbar.run  .cap{color:var(--run)}  .tbar.run  .fill{background:var(--run)}
-.tbar .val{font-family:"IBM Plex Mono",monospace;font-size:13px;min-width:130px;text-align:right}
+/* ---- horizontal stacked bars (all three reuse this) ---- */
+.stackbar-block{margin-top:16px}
+.stackbar-block:first-of-type{margin-top:14px}
+.stackbar-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.stackbar-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.stackbar-val{font-family:"IBM Plex Mono",monospace;font-size:13px}
+.stackbar-track{position:relative;height:26px;background:var(--paper);border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.stackseg{position:absolute;top:0;bottom:0;border-right:1px solid rgba(255,255,255,.55)}
+.stackbar-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font-size:12px}
+.stackbar-legend .lg{display:flex;align-items:center;gap:5px;color:var(--muted)}
+.stackbar-legend .sw{width:9px;height:9px;border-radius:2px;flex:none}
 
 /* map */
-#map{height:340px;border:1px solid var(--line);border-radius:var(--radius);z-index:1}
-.map-tools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center}
+#map{height:300px;border:1px solid var(--line);border-radius:var(--radius);z-index:1}
+.map-tools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;align-items:center}
 .pen{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;
-  padding:6px 11px;border-radius:20px;cursor:pointer;font-weight:600;font-size:13px}
+  padding:5px 10px;border-radius:20px;cursor:pointer;font-weight:600;font-size:13px}
 .pen .dot{width:10px;height:10px;border-radius:50%}
 .pen[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 .pen.swim .dot{background:var(--swim)} .pen.bike .dot{background:var(--bike)} .pen.run .dot{background:var(--run)}
-.map-readout{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-family:"IBM Plex Mono",monospace;font-size:13px}
+.map-readout{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;font-family:"IBM Plex Mono",monospace;font-size:13px}
 .map-readout b{font-weight:600}
 
-/* activity rows */
-.arow{display:grid;grid-template-columns:1.1fr 1.3fr .9fr .9fr auto;gap:8px;align-items:end;
-  padding:10px;border:1px solid var(--line);border-radius:var(--radius);margin-bottom:8px;background:var(--paper)}
+/* activity rows — made more evident */
+.arow{position:relative;display:grid;grid-template-columns:1fr 1.2fr .8fr 1.3fr auto;gap:10px;align-items:end;
+  padding:12px 16px 10px;border:1px solid var(--line);border-left:4px solid var(--ink);border-radius:6px;
+  margin-bottom:10px;background:#fff;box-shadow:var(--shadow)}
 .arow label{margin-bottom:3px}
-@media(max-width:760px){.arow{grid-template-columns:1fr 1fr}}
+.arow-head{grid-column:1/-1;font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.06em;color:var(--ink);padding-bottom:6px;margin-bottom:6px;
+  border-bottom:1px dashed var(--line)}
+@media(max-width:820px){.arow{grid-template-columns:1fr 1fr}}
 .arow .del{border:1px solid var(--line);background:#fff;color:var(--warn);border-radius:var(--radius);
-  cursor:pointer;padding:9px 10px;font-weight:700;line-height:1;height:38px}
+  cursor:pointer;padding:8px 10px;font-weight:700;line-height:1;height:37px}
 .arow .del:hover{background:#fff0eb}
 .rowmeta{grid-column:1/-1;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted);
-  display:flex;gap:14px;flex-wrap:wrap;padding-top:2px}
+  display:flex;gap:12px;flex-wrap:wrap;padding-top:2px}
 .rowmeta.hide{display:none}
 
+/* time hh:mm:ss group */
+.timegroup{display:flex;align-items:center;gap:3px}
+.timegroup input{width:100%;text-align:center;padding:8px 3px}
+.timegroup span{color:var(--muted);font-weight:600}
+.tnote{text-transform:none;font-weight:400;color:var(--muted);letter-spacing:0;font-size:11px}
+
 /* instrument panel (metrics) */
-.instr{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
-.cell{background:var(--surface);padding:12px 14px}
+.instr{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+@media(max-width:820px){.instr{grid-template-columns:1fr 1fr}}
+.cell{background:var(--surface);padding:10px 12px}
 .cell .k{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.cell .v{font-family:"IBM Plex Mono",monospace;font-size:22px;font-weight:600;margin-top:3px}
+.cell .v{font-family:"IBM Plex Mono",monospace;font-size:20px;font-weight:600;margin-top:2px}
 .cell.wide{grid-column:1/-1}
 .cell .v small{font-size:13px;color:var(--muted);font-weight:400}
-.completion .v{font-size:30px}
+.completion .v{font-size:26px}
 .completion.over .v{color:var(--ok)}
 
 /* freestyle explorer */
-.explorer-tools{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
-.explorer-tools input,.explorer-tools select{width:auto;min-width:150px;flex:1}
+.explorer-tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.explorer-tools input,.explorer-tools select{width:auto;min-width:140px;flex:1}
 table.exp{width:100%;border-collapse:collapse;font-size:13px}
-table.exp th,table.exp td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line)}
+table.exp th,table.exp td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
 table.exp th{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
 table.exp td.num{font-family:"IBM Plex Mono",monospace;text-align:right}
 .pill{display:inline-block;font-size:11px;padding:2px 7px;border-radius:20px;background:var(--paper);border:1px solid var(--line);color:var(--muted)}
 
-/* submit */
-.submit-note{font-size:12px;color:var(--muted);margin-top:10px}
-.status{margin-top:12px;padding:10px 12px;border-radius:var(--radius);font-size:14px;display:none}
-.status.show{display:block}
-.status.ok{background:#eaf4ec;border:1px solid #bcdcc3;color:#255c33}
-.status.err{background:#fbeee8;border:1px solid #f0c7b8;color:#8a3311}
-.status.work{background:#eef2f4;border:1px solid var(--line);color:var(--ink)}
+/* fixed submit bar */
+.submitbar{position:fixed;left:0;right:0;bottom:0;background:var(--ink);color:#fff;
+  padding:8px 20px;z-index:100;box-shadow:0 -2px 10px rgba(20,32,43,.18)}
+.submitbar-inner{max-width:var(--content-w);margin:0 auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.submitbar .stat{font-family:"IBM Plex Mono",monospace;font-size:12px;color:#cfd8dc;white-space:nowrap}
+.submitbar .stat b{color:#fff}
+.submitbar .btn{background:#fff;color:var(--ink);border-color:#fff;margin-left:auto}
+.submitbar .btn:hover{background:#e8ebe9}
+.submitbar .status{margin:0;padding:5px 9px;font-size:12px;border-radius:var(--radius);display:none;flex-basis:100%}
+.submitbar .status.show{display:block}
+.submitbar .status.ok{background:rgba(60,140,78,.3);border:1px solid transparent;color:#dff3e2}
+.submitbar .status.err{background:rgba(180,83,31,.3);border:1px solid transparent;color:#fbe4d8}
+.submitbar .status.work{background:rgba(255,255,255,.15);border:1px solid transparent;color:#fff}
 
-.foot{max-width:1400px;margin:0 auto;padding:22px 20px 40px;color:var(--muted);font-size:13px}
-.todo{background:#fff;border:1px dashed var(--line);border-radius:var(--radius);padding:12px 14px;margin-top:14px;font-size:13px;color:var(--muted)}
+.foot{max-width:var(--content-w);margin:0 auto;padding:16px 20px 24px;color:var(--muted);font-size:13px}
+.todo{background:#fff;border:1px dashed var(--line);border-radius:var(--radius);padding:10px 12px;margin-top:10px;font-size:13px;color:var(--muted)}
 .todo b{color:var(--ink)}
-.loaderr{background:#fbeee8;border:1px solid #f0c7b8;color:#8a3311;padding:12px 14px;border-radius:var(--radius);margin:14px 0}
+.loaderr{background:#fbeee8;border:1px solid #f0c7b8;color:#8a3311;padding:10px 12px;border-radius:var(--radius);margin:12px 0}
 </style>
 </head>
 <body>
@@ -177,171 +195,180 @@ table.exp td.num{font-family:"IBM Plex Mono",monospace;text-align:right}
   <div class="mast-inner">
     <div class="eyebrow">OttawaVisuals · active commute challenge</div>
     <h1>Commute-a-thlon</h1>
-    <div class="line" id="masthead-line" aria-hidden="true">
-      <div class="seg-line seg-swim"><span class="node"></span><span class="bar"><span id="ml-swim"></span></span><span class="seg-label">SWIM</span></div>
-      <div class="seg-line seg-bike"><span class="node"></span><span class="bar"><span id="ml-bike"></span></span><span class="seg-label">BIKE</span></div>
-      <div class="seg-line seg-run"><span class="node"></span><span class="bar"><span id="ml-run"></span></span><span class="node"></span><span class="seg-label">RUN</span></div>
+    <div class="line" aria-hidden="true">
+      <div class="ml-track" id="ml-track"></div>
+      <span class="seg-label">COMMUTE SPLIT</span>
     </div>
   </div>
 </header>
 
-<div id="load-error" class="loaderr" style="display:none;max-width:1400px;margin:14px auto 0"></div>
+<div id="load-error" class="loaderr" style="display:none;max-width:1200px;margin:14px auto 0"></div>
 
 <main>
-  <!-- LEFT COLUMN -->
-  <div class="stack">
 
-    <!-- 1 · TARGET -->
-    <section class="panel">
-      <div class="phead"><span class="idx">01</span><h2>Set your target</h2></div>
-      <div class="pbody">
-        <div class="grid2">
-          <div class="field"><label for="displayName">Display name</label><input id="displayName" placeholder="e.g. J. Tremblay" autocomplete="name" /></div>
-          <div class="field"><label for="team">Team / branch</label><input id="team" placeholder="e.g. Data Services" /></div>
-        </div>
-        <div class="grid2">
-          <div class="field"><label for="commuteMode">Usual commute mode</label><input id="commuteMode" placeholder="e.g. OC Transpo + walk" /></div>
-          <div class="field">
-            <label for="targetDistance">Challenge distance (km)</label>
-            <input id="targetDistance" type="number" min="0" step="0.1" inputmode="decimal" />
-            <div class="hint">Total distance to split across swim / bike / run.</div>
-          </div>
-        </div>
+  <!-- 1 · TARGET -->
+  <section class="panel">
+    <div class="phead"><span class="idx">01</span><h2>Set your target</h2></div>
+    <div class="pbody">
+      <div class="grid4">
+        <div class="field"><label for="displayName">Display name</label><input id="displayName" placeholder="e.g. J. Tremblay" autocomplete="name" /></div>
+        <div class="field"><label for="team">Team / branch</label><input id="team" placeholder="e.g. Data Services" /></div>
+        <div class="field"><label for="commuteMode">Usual commute mode</label><input id="commuteMode" placeholder="e.g. OC Transpo + walk" /></div>
         <div class="field">
-          <label>Format</label>
-          <div class="seg-toggle" role="group" aria-label="Target format">
-            <button type="button" data-format="olympic" aria-pressed="true">Olympic</button>
-            <button type="button" data-format="ironman" aria-pressed="false">Ironman</button>
-          </div>
-          <div class="hint" id="format-hint"></div>
-        </div>
-
-        <div class="tbars" aria-label="Target by discipline">
-          <div class="tbar swim"><span class="cap">Swim</span><div class="track"><div class="fill" id="tfill-swim"></div></div><span class="val" id="tval-swim">—</span></div>
-          <div class="tbar bike"><span class="cap">Bike</span><div class="track"><div class="fill" id="tfill-bike"></div></div><span class="val" id="tval-bike">—</span></div>
-          <div class="tbar run"><span class="cap">Run</span><div class="track"><div class="fill" id="tfill-run"></div></div><span class="val" id="tval-run">—</span></div>
-        </div>
-        <div class="hint" style="margin-top:8px">Bars show each discipline's share of the target. Fill = distance you've drawn on the map below.</div>
-      </div>
-    </section>
-
-    <!-- 2 · ROUTE -->
-    <section class="panel">
-      <div class="phead"><span class="idx">02</span><h2>Sketch your route</h2></div>
-      <div class="pbody">
-        <div class="map-tools">
-          <span style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Drawing:</span>
-          <button type="button" class="pen swim" data-pen="swim" aria-pressed="true"><span class="dot"></span>Swim</button>
-          <button type="button" class="pen bike" data-pen="bike" aria-pressed="false"><span class="dot"></span>Bike</button>
-          <button type="button" class="pen run"  data-pen="run"  aria-pressed="false"><span class="dot"></span>Run</button>
-          <span style="flex:1"></span>
-          <button type="button" class="btn ghost sm" id="undoPoint">Undo point</button>
-          <button type="button" class="btn ghost sm" id="clearSeg">Clear segment</button>
-        </div>
-        <div id="map"></div>
-        <div class="map-readout">
-          <span><b style="color:var(--swim)">Swim</b> <span id="drawn-swim" class="mono">0.00</span> km</span>
-          <span><b style="color:var(--bike)">Bike</b> <span id="drawn-bike" class="mono">0.00</span> km</span>
-          <span><b style="color:var(--run)">Run</b> <span id="drawn-run" class="mono">0.00</span> km</span>
-          <span>· Total drawn <b id="drawn-total" class="mono">0.00</b> km</span>
-          <span>· vs target <b id="drawn-diff" class="mono">—</b></span>
-        </div>
-        <div class="hint" style="margin-top:8px">Click the map to drop points for the selected discipline. Distance follows the great-circle path between points.</div>
-      </div>
-    </section>
-
-    <!-- 3 · ACTIVITIES -->
-    <section class="panel">
-      <div class="phead"><span class="idx">03</span><h2>Log your activities</h2><span class="idx" id="activity-count-badge">0 logged</span></div>
-      <div class="pbody">
-        <div id="activityRows"></div>
-        <div class="btn-row" style="margin-top:6px">
-          <button type="button" class="btn" id="addActivity">+ Add activity</button>
-          <div class="field" style="margin:0;min-width:150px">
-            <label for="transition" style="margin-bottom:3px">Transition minutes</label>
-            <input id="transition" type="number" min="0" step="1" inputmode="numeric" value="0" />
-          </div>
-          <div class="field" style="margin:0;min-width:150px">
-            <label for="season" style="margin-bottom:3px">Season</label>
-            <select id="season"></select>
-          </div>
-        </div>
-        <div class="field" style="margin-top:12px">
-          <label for="notes">Notes</label>
-          <textarea id="notes" rows="2" placeholder="Anything worth remembering about this commute."></textarea>
+          <label for="targetDistance">Challenge distance (km)</label>
+          <input id="targetDistance" type="number" min="0" step="0.1" inputmode="decimal" value="10" />
         </div>
       </div>
-    </section>
 
-    <!-- 5 · FREESTYLE / MET EXPLORER -->
-    <section class="panel">
-      <div class="phead"><span class="idx">05</span><h2>Freestyle · MET explorer</h2></div>
-      <div class="pbody">
-        <div class="explorer-tools">
-          <input id="expSearch" placeholder="Search activities…" />
-          <select id="expCat"><option value="">All categories</option></select>
-          <div class="field" style="margin:0;display:flex;gap:6px;align-items:end">
-            <div><label for="expMin" style="margin-bottom:3px">Minutes</label><input id="expMin" type="number" min="0" step="1" value="30" style="width:90px" /></div>
-          </div>
+      <div class="field" style="margin-top:6px">
+        <label>Format</label>
+        <div class="seg-toggle" role="group" aria-label="Target format">
+          <button type="button" data-format="olympic" aria-pressed="true">Olympic</button>
+          <button type="button" data-format="ironman" aria-pressed="false">Ironman</button>
         </div>
-        <div style="overflow-x:auto">
-          <table class="exp">
-            <thead><tr>
-              <th>Activity</th><th>Category</th><th class="num">MET</th><th class="num">km/h</th>
-              <th class="num">Fun</th><th class="num">Orig.</th><th class="num">MET·min</th>
-            </tr></thead>
-            <tbody id="expBody"></tbody>
-          </table>
-        </div>
-        <div class="hint" style="margin-top:8px">MET·min = MET × minutes, using the value in the Minutes box. Data-driven from <span class="mono">data/activities.csv</span>.</div>
+        <div class="hint" id="format-hint"></div>
       </div>
-    </section>
 
-  </div>
-
-  <!-- RIGHT COLUMN -->
-  <div class="sticky-col">
-
-    <!-- 4 · METRICS -->
-    <section class="panel">
-      <div class="phead"><span class="idx">04</span><h2>Live metrics</h2></div>
-      <div class="pbody">
-        <div class="instr">
-          <div class="cell completion wide" id="cell-completion">
-            <div class="k">Completion vs target</div>
-            <div class="v" id="m-completion">—</div>
-          </div>
-          <div class="cell"><div class="k">MET·minutes</div><div class="v" id="m-met">0</div></div>
-          <div class="cell"><div class="k">Activities</div><div class="v" id="m-count">0</div></div>
-          <div class="cell"><div class="k">Active min</div><div class="v" id="m-active">0</div></div>
-          <div class="cell"><div class="k">Elapsed min</div><div class="v" id="m-elapsed">0</div></div>
-          <div class="cell"><div class="k">Distance</div><div class="v" id="m-dist">0<small> km</small></div></div>
-          <div class="cell"><div class="k">Storeys</div><div class="v" id="m-storeys">0</div></div>
-          <div class="cell"><div class="k">Fun score</div><div class="v" id="m-fun">—</div></div>
-          <div class="cell"><div class="k">Originality</div><div class="v" id="m-orig">—</div></div>
-        </div>
+      <!-- BAR 1 — triathlon equivalent, distance -->
+      <div class="stackbar-block">
+        <div class="stackbar-head"><span class="stackbar-label">Triathlon equivalent — distance</span><span class="stackbar-val" id="distbar-val">—</span></div>
+        <div class="stackbar-track" id="distbar-track"></div>
+        <div class="stackbar-legend" id="distbar-legend"></div>
+        <div class="hint">Your commute distance split across swim / bike / run, per the canonical ratio of the selected format.</div>
       </div>
-    </section>
 
-    <!-- SUBMIT -->
-    <section class="panel">
-      <div class="phead"><span class="idx">→</span><h2>Submit</h2></div>
-      <div class="pbody">
-        <button type="button" class="btn" id="submitBtn" style="width:100%;padding:12px">Submit commute</button>
-        <div class="status" id="status" role="status" aria-live="polite"></div>
-        <p class="submit-note">Writes one row to <b>Submissions</b> and one row per activity to <b>Activities</b>.</p>
-        <div class="todo">
-          <b>Not yet wired:</b> leaderboards, awards, trends, personal records and community ratings all need a <span class="mono">doGet</span> read endpoint on the Apps Script that returns sheet data. The client and CSVs are ready for them — see the README.
+      <!-- BAR 2 — triathlon equivalent, MET -->
+      <div class="stackbar-block">
+        <div class="stackbar-head"><span class="stackbar-label">Triathlon equivalent — effort (MET·min)</span><span class="stackbar-val" id="metbar-val">—</span></div>
+        <div class="stackbar-track" id="metbar-track"></div>
+        <div class="stackbar-legend" id="metbar-legend"></div>
+        <div class="hint">Same split, converted to MET·minutes at assumed average-person paces (swim 2.5 km/h @ 8.3 MET · bike 20 km/h @ 8.0 MET · run 10 km/h @ 9.8 MET), so it's directly comparable to the bar below.</div>
+      </div>
+
+      <!-- BAR 3 — logged activities, MET -->
+      <div class="stackbar-block">
+        <div class="stackbar-head"><span class="stackbar-label">Logged activities — effort (MET·min)</span><span class="stackbar-val" id="actbar-val">—</span></div>
+        <div class="stackbar-track" id="actbar-track"></div>
+        <div class="stackbar-legend" id="actbar-legend"></div>
+        <div class="hint">Each segment is one activity you log below, sized by its own MET·minutes — fills against the same scale as the bar above.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · ACTIVITIES -->
+  <section class="panel">
+    <div class="phead"><span class="idx">02</span><h2>Log your activities</h2><span class="idx" id="activity-count-badge">0 logged</span></div>
+    <div class="pbody">
+      <div id="activityRows"></div>
+      <div class="btn-row" style="margin-top:4px">
+        <button type="button" class="btn" id="addActivity">+ Add activity</button>
+        <div class="field" style="margin:0;min-width:140px">
+          <label for="transition" style="margin-bottom:3px">Transition minutes</label>
+          <input id="transition" type="number" min="0" step="1" inputmode="numeric" value="0" />
+        </div>
+        <div class="field" style="margin:0;min-width:140px">
+          <label for="season" style="margin-bottom:3px">Season</label>
+          <select id="season"></select>
         </div>
       </div>
-    </section>
+      <div class="field" style="margin-top:10px">
+        <label for="notes">Notes</label>
+        <textarea id="notes" rows="2" placeholder="Anything worth remembering about this commute."></textarea>
+      </div>
+    </div>
+  </section>
 
-  </div>
+  <!-- 3 · ROUTE (optional / collapsible) -->
+  <details class="panel" id="routeDetails">
+    <summary class="phead">
+      <span style="display:flex;align-items:baseline;gap:10px"><span class="idx">03</span><h2>Sketch your route <span class="hint" style="display:inline;text-transform:none">(optional)</span></h2></span>
+      <span class="summary-toggle" id="routeToggleIcon">+ show</span>
+    </summary>
+    <div class="pbody">
+      <div class="map-tools">
+        <span style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Drawing:</span>
+        <button type="button" class="pen swim" data-pen="swim" aria-pressed="true"><span class="dot"></span>Swim</button>
+        <button type="button" class="pen bike" data-pen="bike" aria-pressed="false"><span class="dot"></span>Bike</button>
+        <button type="button" class="pen run"  data-pen="run"  aria-pressed="false"><span class="dot"></span>Run</button>
+        <span style="flex:1"></span>
+        <button type="button" class="btn ghost sm" id="undoPoint">Undo point</button>
+        <button type="button" class="btn ghost sm" id="clearSeg">Clear segment</button>
+      </div>
+      <div id="map"></div>
+      <div class="map-readout">
+        <span><b style="color:var(--swim)">Swim</b> <span id="drawn-swim" class="mono">0.00</span> km</span>
+        <span><b style="color:var(--bike)">Bike</b> <span id="drawn-bike" class="mono">0.00</span> km</span>
+        <span><b style="color:var(--run)">Run</b> <span id="drawn-run" class="mono">0.00</span> km</span>
+        <span>· Total drawn <b id="drawn-total" class="mono">0.00</b> km</span>
+        <span>· vs target <b id="drawn-diff" class="mono">—</b></span>
+      </div>
+      <div class="hint" style="margin-top:8px">Click the map to drop points for the selected discipline. Distance follows the great-circle path between points. This is a reference sketch only — it doesn't feed the bars above.</div>
+    </div>
+  </details>
+
+  <!-- 4 · METRICS -->
+  <section class="panel">
+    <div class="phead"><span class="idx">04</span><h2>Live metrics</h2></div>
+    <div class="pbody">
+      <div class="instr">
+        <div class="cell completion wide" id="cell-completion">
+          <div class="k">Completion vs target</div>
+          <div class="v" id="m-completion">—</div>
+        </div>
+        <div class="cell"><div class="k">MET·minutes</div><div class="v" id="m-met">0</div></div>
+        <div class="cell"><div class="k">Activities</div><div class="v" id="m-count">0</div></div>
+        <div class="cell"><div class="k">Active min</div><div class="v" id="m-active">0</div></div>
+        <div class="cell"><div class="k">Elapsed min</div><div class="v" id="m-elapsed">0</div></div>
+        <div class="cell"><div class="k">Distance</div><div class="v" id="m-dist">0<small> km</small></div></div>
+        <div class="cell"><div class="k">Storeys</div><div class="v" id="m-storeys">0</div></div>
+        <div class="cell"><div class="k">Fun score</div><div class="v" id="m-fun">—</div></div>
+        <div class="cell"><div class="k">Originality</div><div class="v" id="m-orig">—</div></div>
+      </div>
+      <p class="submit-note hint" style="margin-top:10px">Submitting writes one row to <b>Submissions</b> and one row per activity to <b>Activities</b>.</p>
+      <div class="todo">
+        <b>Not yet wired:</b> leaderboards, awards, trends, personal records and community ratings all need a <span class="mono">doGet</span> read endpoint on the Apps Script that returns sheet data. The client and CSVs are ready for them — see the README.
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · FREESTYLE / MET EXPLORER -->
+  <section class="panel">
+    <div class="phead"><span class="idx">05</span><h2>Freestyle · MET explorer</h2></div>
+    <div class="pbody">
+      <div class="explorer-tools">
+        <input id="expSearch" placeholder="Search activities…" />
+        <select id="expCat"><option value="">All categories</option></select>
+        <div class="field" style="margin:0;display:flex;gap:6px;align-items:end">
+          <div><label for="expMin" style="margin-bottom:3px">Minutes</label><input id="expMin" type="number" min="0" step="1" value="30" style="width:90px" /></div>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="exp">
+          <thead><tr>
+            <th>Activity</th><th>Category</th><th class="num">MET</th><th class="num">km/h</th>
+            <th class="num">Fun</th><th class="num">Orig.</th><th class="num">MET·min</th>
+          </tr></thead>
+          <tbody id="expBody"></tbody>
+        </table>
+      </div>
+      <div class="hint" style="margin-top:8px">MET·min = MET × minutes, using the value in the Minutes box. Data-driven from <span class="mono">data/activities.csv</span>.</div>
+    </div>
+  </section>
+
 </main>
 
 <footer class="foot">
   Commute-a-thlon · <a href="https://github.com/OttawaVisuals/Commute-a-thlon">OttawaVisuals/Commute-a-thlon</a> · MET values from the 2024 Adult Compendium of Physical Activities.
 </footer>
+
+<div class="submitbar">
+  <div class="submitbar-inner">
+    <span class="stat">Dist <b id="bar-dist">0.00</b>/<span id="bar-target">10.00</span> km</span>
+    <span class="stat">Completion <b id="bar-completion">—</b></span>
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+    <button type="button" class="btn" id="submitBtn">Submit commute</button>
+  </div>
+</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -358,6 +385,18 @@ const FORMATS = {
   ironman: { label:"Ironman", swim:3.86, bike:180, run:42.2 },
 };
 
+// Assumed average-person pace + MET for converting the triathlon distance
+// split into a MET·minute split (2024 Adult Compendium of Physical Activities,
+// moderate-effort values). Editable if you'd rather assume a different pace.
+const DISCIPLINES = {
+  swim: { met:8.3, speedKmh:2.5,  label:"Swim", color:"--swim" },
+  bike: { met:8.0, speedKmh:20,   label:"Bike", color:"--bike" },
+  run:  { met:9.8, speedKmh:10,   label:"Run",  color:"--run"  },
+};
+
+// Palette for the per-activity segmented bar (cycles if more rows than colors).
+const PALETTE = ["#1f8fb0","#e4572e","#3c8c4e","#8a5cb5","#c9a227","#5c6bc0","#d1495b","#4d8076"];
+
 /* ====================== STATE ====================== */
 const state = {
   activities: [],          // from activities.csv
@@ -369,6 +408,8 @@ const state = {
   drawn: { swim:0, bike:0, run:0 },
 };
 let rowSeq = 0;
+let map, activePen = "swim", mapInited = false;
+const penLayers = {}; // disc -> {latlngs, polyline, markers}
 
 /* ====================== CSV ====================== */
 function parseCSV(text){
@@ -428,7 +469,7 @@ async function init(){
   wireActivityControls();
   wireExplorer();
   wireSubmit();
-  initMap();
+  wireRouteDetails();
 
   addActivityRow();          // start with one row
   setFormat("olympic", true);
@@ -452,10 +493,10 @@ function setFormat(fmt, prefillIfEmpty){
     f.label + " split ≈ " + f.swim + " / " + f.bike + " / " + f.run + " km. Canonical total " + canonicalTotal.toFixed(2) + " km.";
   const dEl = document.getElementById("targetDistance");
   if(prefillIfEmpty && !dEl.value) dEl.value = canonicalTotal;
-  renderTargets();
+  renderTargetBars();
 }
 function wireTargetInputs(){
-  document.getElementById("targetDistance").addEventListener("input", ()=>{ renderTargets(); recompute(); });
+  document.getElementById("targetDistance").addEventListener("input", ()=>{ renderTargetBars(); recompute(); });
 }
 function targetSplit(){
   const f = FORMATS[state.format];
@@ -468,25 +509,105 @@ function targetSplit(){
     run:  dist * f.run/total,
   };
 }
-function renderTargets(){
+// Same distance split, converted to MET·minutes per discipline.
+function kmToMet(disc, km){
+  const d = DISCIPLINES[disc];
+  const timeMin = d.speedKmh>0 ? (km/d.speedKmh*60) : 0;
+  return timeMin * d.met;
+}
+function targetMETSplit(){
   const t = targetSplit();
-  const setBar = (disc)=>{
-    const target = t[disc];
-    const drawn = state.drawn[disc];
-    const pct = target>0 ? Math.min(100, drawn/target*100) : 0;
-    document.getElementById("tfill-"+disc).style.width = pct + "%";
-    document.getElementById("tval-"+disc).textContent =
-      drawn.toFixed(2) + " / " + target.toFixed(2) + " km";
-    // masthead mirror
-    const ml = document.getElementById("ml-"+disc);
-    if(ml) ml.style.width = pct + "%";
-  };
-  ["swim","bike","run"].forEach(setBar);
+  const swim = kmToMet("swim", t.swim);
+  const bike = kmToMet("bike", t.bike);
+  const run  = kmToMet("run",  t.run);
+  return { swim, bike, run, total: swim+bike+run };
 }
 
-/* ====================== MAP ====================== */
-let map, activePen = "swim";
-const penLayers = {}; // disc -> {latlngs, polyline, markers}
+/* ====================== STACKED BAR RENDERING ====================== */
+// Generic renderer: segments = [{label,value,color}], drawn left-to-right,
+// cumulative-capped at 100% of `scale`. legendId is optional.
+function renderStackedBar(trackId, segments, scale, legendId){
+  const track = document.getElementById(trackId);
+  track.innerHTML = "";
+  let cum = 0;
+  segments.forEach(seg=>{
+    if(!(seg.value>0) || scale<=0) return;
+    const pct = Math.max(0, Math.min(100-cum, seg.value/scale*100));
+    if(!(pct>0)) return;
+    const el = document.createElement("div");
+    el.className = "stackseg";
+    el.style.left = cum + "%";
+    el.style.width = pct + "%";
+    el.style.background = seg.color;
+    el.title = seg.label + " — " + seg.value.toFixed(2);
+    track.appendChild(el);
+    cum += pct;
+  });
+  if(legendId){
+    const legend = document.getElementById(legendId);
+    legend.innerHTML = segments.filter(s=>s.value>0).map(s=>
+      `<span class="lg"><span class="sw" style="background:${s.color}"></span>${esc(s.label)} ${s.value.toFixed(2)}</span>`
+    ).join("");
+  }
+}
+
+// BAR 1 (distance) + BAR 2 (MET) — both derived purely from the target/format,
+// independent of anything logged or drawn.
+function renderTargetBars(){
+  const t = targetSplit();
+  renderStackedBar("distbar-track", [
+    {label:"Swim", value:t.swim, color:getCSS("--swim")},
+    {label:"Bike", value:t.bike, color:getCSS("--bike")},
+    {label:"Run",  value:t.run,  color:getCSS("--run")},
+  ], t.total, "distbar-legend");
+  document.getElementById("distbar-val").textContent = t.total.toFixed(2) + " km total";
+
+  const m = targetMETSplit();
+  renderStackedBar("metbar-track", [
+    {label:"Swim", value:m.swim, color:getCSS("--swim")},
+    {label:"Bike", value:m.bike, color:getCSS("--bike")},
+    {label:"Run",  value:m.run,  color:getCSS("--run")},
+  ], m.total, "metbar-legend");
+  document.getElementById("metbar-val").textContent = Math.round(m.total).toLocaleString() + " MET·min total";
+
+  // masthead mini mirror of the distance split
+  renderStackedBar("ml-track", [
+    {label:"Swim", value:t.swim, color:getCSS("--swim")},
+    {label:"Bike", value:t.bike, color:getCSS("--bike")},
+    {label:"Run",  value:t.run,  color:getCSS("--run")},
+  ], t.total, null);
+}
+
+// BAR 3 — one segment per logged activity, sized by its own MET·minutes,
+// scaled against the same MET total as bar 2 so the two are comparable.
+function renderActivityBar(rows, metScale){
+  const segments = rows.map((r,i)=>({
+    label: r.activity.name,
+    value: r.metMin,
+    color: PALETTE[i % PALETTE.length],
+  }));
+  renderStackedBar("actbar-track", segments, metScale, "actbar-legend");
+  const metMin = sum(rows.map(r=>r.metMin));
+  document.getElementById("actbar-val").textContent =
+    Math.round(metMin).toLocaleString() + " / " + Math.round(metScale).toLocaleString() + " MET·min";
+}
+
+/* ====================== ROUTE DETAILS (lazy map init) ====================== */
+function wireRouteDetails(){
+  const details = document.getElementById("routeDetails");
+  const icon = document.getElementById("routeToggleIcon");
+  details.addEventListener("toggle", ()=>{
+    if(details.open){
+      icon.textContent = "− hide";
+      if(!mapInited){ initMap(); mapInited = true; }
+      else if(map){ setTimeout(()=>map.invalidateSize(), 0); }
+    } else {
+      icon.textContent = "+ show";
+    }
+  });
+}
+
+/* ====================== MAP (reference sketch only) ====================== */
 function initMap(){
   map = L.map("map", {scrollWheelZoom:false}).setView([45.4215, -75.6972], 12); // Ottawa
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -516,6 +637,7 @@ function initMap(){
   document.getElementById("clearSeg").addEventListener("click", ()=>{
     penLayers[activePen].latlngs = []; redrawSeg(activePen);
   });
+  setTimeout(()=>map.invalidateSize(), 0);
 }
 function getCSS(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
 function addMapPoint(latlng){
@@ -530,7 +652,6 @@ function redrawSeg(disc){
   L2.latlngs.forEach(ll=>{
     L.circleMarker(ll, {radius:4, color:color, fillColor:"#fff", fillOpacity:1, weight:2}).addTo(L2.markers);
   });
-  // distance
   let km=0;
   for(let i=1;i<L2.latlngs.length;i++) km += L2.latlngs[i-1].distanceTo(L2.latlngs[i]);
   km/=1000;
@@ -541,7 +662,6 @@ function redrawSeg(disc){
   const t = targetSplit();
   document.getElementById("drawn-diff").textContent =
     t.total>0 ? ((total - t.total>=0?"+":"") + (total - t.total).toFixed(2) + " km") : "—";
-  renderTargets();
 }
 
 /* ====================== ACTIVITY ROWS ====================== */
@@ -555,12 +675,21 @@ function addActivityRow(){
   wrap.className = "arow";
   wrap.dataset.id = id;
   wrap.innerHTML = `
+    <div class="arow-head" data-role="idxline">Activity</div>
     <div><label>Category</label>
       <select data-role="cat">${state.categories.map(c=>`<option value="${c.category_id}">${esc(c.name)}</option>`).join("")}</select></div>
     <div><label>Activity</label><select data-role="act"></select></div>
     <div data-role="primary-wrap"><label data-role="primary-label">Distance (km)</label>
       <input data-role="primary" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" /></div>
-    <div><label>Time (min)</label><input data-role="time" type="number" min="0" step="0.1" inputmode="decimal" placeholder="auto" /></div>
+    <div><label>Time (hh:mm:ss)<span class="tnote" data-role="time-note"></span></label>
+      <div class="timegroup">
+        <input data-role="hh" type="number" min="0" max="99" inputmode="numeric" placeholder="hh" />
+        <span>:</span>
+        <input data-role="mm" type="number" min="0" max="59" inputmode="numeric" placeholder="mm" />
+        <span>:</span>
+        <input data-role="ss" type="number" min="0" max="59" inputmode="numeric" placeholder="ss" />
+      </div>
+    </div>
     <button type="button" class="del" title="Delete activity" aria-label="Delete activity">✕</button>
     <div class="rowmeta hide" data-role="meta"></div>`;
   document.getElementById("activityRows").appendChild(wrap);
@@ -570,11 +699,19 @@ function addActivityRow(){
   catSel.addEventListener("change", ()=>{ fillActivities(catSel.value, actSel); onRowActivityChange(wrap); });
   actSel.addEventListener("change", ()=> onRowActivityChange(wrap));
   wrap.querySelector('[data-role="primary"]').addEventListener("input", recompute);
-  wrap.querySelector('[data-role="time"]').addEventListener("input", recompute);
-  wrap.querySelector(".del").addEventListener("click", ()=>{ wrap.remove(); recompute(); });
+  ["hh","mm","ss"].forEach(role=>
+    wrap.querySelector(`[data-role="${role}"]`).addEventListener("input", recompute));
+  wrap.querySelector(".del").addEventListener("click", ()=>{ wrap.remove(); renumberRows(); recompute(); });
 
   fillActivities(catSel.value, actSel);
   onRowActivityChange(wrap);
+  renumberRows();
+}
+function renumberRows(){
+  document.querySelectorAll("#activityRows .arow").forEach((w,i)=>{
+    const h = w.querySelector('[data-role="idxline"]');
+    if(h) h.textContent = "Activity " + (i+1);
+  });
 }
 function fillActivities(catId, actSel){
   const list = state.activities.filter(a => a.category === catId);
@@ -588,17 +725,17 @@ function onRowActivityChange(wrap){
   const label = wrap.querySelector('[data-role="primary-label"]');
   const primary = wrap.querySelector('[data-role="primary"]');
   const primaryWrap = wrap.querySelector('[data-role="primary-wrap"]');
-  const timeInput = wrap.querySelector('[data-role="time"]');
+  const timeNote = wrap.querySelector('[data-role="time-note"]');
   if(!a){ recompute(); return; }
   if(a.unit === "storeys"){
     label.textContent = "Storeys"; primary.placeholder="0"; primaryWrap.style.visibility="visible";
-    timeInput.placeholder="min";
+    timeNote.textContent = "";
   } else if(a.unit === "minutes"){
     primaryWrap.style.visibility="hidden";              // time-only activity
-    timeInput.placeholder="min";
+    timeNote.textContent = "";
   } else { // km
     label.textContent = "Distance (km)"; primary.placeholder="0"; primaryWrap.style.visibility="visible";
-    timeInput.placeholder="auto";
+    timeNote.textContent = " · auto from speed if blank";
   }
   recompute();
 }
@@ -609,7 +746,10 @@ function computeRow(wrap){
   const a = state.byId[actId];
   if(!a) return null;
   const primary = parseFloat(wrap.querySelector('[data-role="primary"]').value) || 0;
-  let time = parseFloat(wrap.querySelector('[data-role="time"]').value);
+  const hh = parseFloat(wrap.querySelector('[data-role="hh"]').value) || 0;
+  const mm = parseFloat(wrap.querySelector('[data-role="mm"]').value) || 0;
+  const ss = parseFloat(wrap.querySelector('[data-role="ss"]').value) || 0;
+  let time = hh*60 + mm + ss/60;
   const speed = parseFloat(a.speed_kmh) || 0;
 
   let distanceKm=0, storeys=0, unit=a.unit, calcSpeed="";
@@ -670,6 +810,14 @@ function recompute(){
     compCell.classList.toggle("over", completion>=100);
   }
   setText("activity-count-badge", count + " logged");
+
+  // BAR 3 scales against the same MET total as BAR 2
+  renderActivityBar(rows, targetMETSplit().total);
+
+  // fixed submit bar quick stats
+  setText("bar-dist", totalDist.toFixed(2));
+  setText("bar-target", target.total.toFixed(2));
+  setText("bar-completion", completion==null ? "—" : completion.toFixed(0) + "%");
 }
 function updateRowMeta(wrap, r){
   const meta = wrap.querySelector('[data-role="meta"]');
@@ -786,7 +934,6 @@ function buildPayload(){
 }
 
 async function submit(){
-  const status = document.getElementById("status");
   const name = val("displayName");
   if(!name){ return showStatus("err", "Add a display name before submitting."); }
   if(!state.rows.length){ return showStatus("err", "Log at least one activity before submitting."); }
@@ -809,10 +956,9 @@ async function submit(){
     showStatus("ok",
       "Submitted " + payload.activities.length + " activit" +
       (payload.activities.length===1?"y":"ies") +
-      ". The Apps Script response is opaque by design (no-cors) — confirm the rows landed in the sheet.");
+      ". Response is opaque by design (no-cors) — confirm rows landed in the sheet.");
   }catch(err){
-    showStatus("err", "Network error: " + err.message +
-      ". Payload logged to the console so nothing is lost.");
+    showStatus("err", "Network error: " + err.message + ". Payload logged to console so nothing is lost.");
     console.error("Submission failed. Payload:", payload);
   }finally{
     btn.disabled = false;
