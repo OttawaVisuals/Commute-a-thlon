@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Commute-a-thlon</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+<style>
+:root{
+  --ink:#14202b;      /* deep slate-navy, not pure black */
+  --paper:#f5f6f4;    /* cool off-white */
+  --surface:#ffffff;
+  --line:#d7dcda;
+  --muted:#6b7a85;
+  --swim:#1f8fb0;     /* water */
+  --bike:#e4572e;     /* signal orange */
+  --run:#3c8c4e;      /* park green */
+  --ok:#3c8c4e;
+  --warn:#b4531f;
+  --radius:4px;
+  --shadow:0 1px 0 rgba(20,32,43,.04), 0 2px 8px rgba(20,32,43,.05);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:Inter,system-ui,sans-serif;
+  font-size:15px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-family:"Space Grotesk",sans-serif;font-weight:600;letter-spacing:-0.01em;margin:0}
+.mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+a{color:var(--swim)}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+/* ---- masthead: the commute line ---- */
+header.mast{
+  background:var(--ink);color:var(--paper);
+  padding:22px 20px 26px;
+}
+.mast-inner{max-width:1400px;margin:0 auto}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#9fb1bc}
+.mast h1{font-size:clamp(28px,4vw,44px);margin:2px 0 14px;color:#fff}
+/* transit line signature */
+.line{display:flex;align-items:center;gap:0;margin-top:6px;flex-wrap:wrap}
+.seg-line{display:flex;align-items:center;flex:1;min-width:220px}
+.node{width:12px;height:12px;border-radius:50%;background:var(--paper);flex:none;z-index:2;border:2px solid var(--ink)}
+.bar{height:6px;flex:1;position:relative;overflow:hidden;background:#2b3a46}
+.bar > span{position:absolute;inset:0;width:0;transition:width .4s ease}
+.seg-swim .bar>span{background:var(--swim)}
+.seg-bike .bar>span{background:var(--bike)}
+.seg-run  .bar>span{background:var(--run)}
+.seg-label{font-family:"IBM Plex Mono",monospace;font-size:11px;color:#9fb1bc;padding:0 8px;white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.bar>span{transition:none}}
+
+/* ---- layout ---- */
+main{max-width:1400px;margin:0 auto;padding:20px;display:grid;grid-template-columns:1fr;gap:18px}
+@media(min-width:960px){main{grid-template-columns:minmax(0,1.5fr) minmax(320px,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.panel > .phead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.phead .idx{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted)}
+.phead h2{font-size:17px}
+.pbody{padding:18px}
+.stack{display:grid;gap:18px}
+.sticky-col{display:grid;gap:18px;align-content:start}
+@media(min-width:960px){.sticky-col{position:sticky;top:14px}}
+
+/* ---- forms ---- */
+label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:0 0 5px}
+input,select,textarea{
+  width:100%;font-family:inherit;font-size:15px;color:var(--ink);
+  background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);
+  padding:9px 10px;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--ink);background:#fff}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:560px){.grid3{grid-template-columns:1fr 1fr}}
+.field{margin-bottom:12px}
+.hint{font-size:12px;color:var(--muted);margin-top:4px;font-weight:400;text-transform:none;letter-spacing:0}
+
+/* buttons */
+.btn{cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:#fff;
+  padding:9px 14px;border-radius:var(--radius);font-weight:600;font-size:14px}
+.btn:hover{background:#0c1720}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn.ghost:hover{background:var(--paper)}
+.btn.sm{padding:6px 10px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* format toggle */
+.seg-toggle{display:inline-flex;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.seg-toggle button{background:#fff;border:0;padding:8px 14px;cursor:pointer;font-weight:600;font-size:14px;color:var(--muted)}
+.seg-toggle button[aria-pressed="true"]{background:var(--ink);color:#fff}
+
+/* target bars */
+.tbars{display:grid;gap:10px;margin-top:14px}
+.tbar{display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:10px}
+.tbar .cap{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.tbar .track{height:22px;background:var(--paper);border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.tbar .fill{height:100%;width:0}
+.tbar.swim .cap{color:var(--swim)} .tbar.swim .fill{background:var(--swim)}
+.tbar.bike .cap{color:var(--bike)} .tbar.bike .fill{background:var(--bike)}
+.tbar.run  .cap{color:var(--run)}  .tbar.run  .fill{background:var(--run)}
+.tbar .val{font-family:"IBM Plex Mono",monospace;font-size:13px;min-width:130px;text-align:right}
+
+/* map */
+#map{height:340px;border:1px solid var(--line);border-radius:var(--radius);z-index:1}
+.map-tools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center}
+.pen{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;
+  padding:6px 11px;border-radius:20px;cursor:pointer;font-weight:600;font-size:13px}
+.pen .dot{width:10px;height:10px;border-radius:50%}
+.pen[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.pen.swim .dot{background:var(--swim)} .pen.bike .dot{background:var(--bike)} .pen.run .dot{background:var(--run)}
+.map-readout{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-family:"IBM Plex Mono",monospace;font-size:13px}
+.map-readout b{font-weight:600}
+
+/* activity rows */
+.arow{display:grid;grid-template-columns:1.1fr 1.3fr .9fr .9fr auto;gap:8px;align-items:end;
+  padding:10px;border:1px solid var(--line);border-radius:var(--radius);margin-bottom:8px;background:var(--paper)}
+.arow label{margin-bottom:3px}
+@media(max-width:760px){.arow{grid-template-columns:1fr 1fr}}
+.arow .del{border:1px solid var(--line);background:#fff;color:var(--warn);border-radius:var(--radius);
+  cursor:pointer;padding:9px 10px;font-weight:700;line-height:1;height:38px}
+.arow .del:hover{background:#fff0eb}
+.rowmeta{grid-column:1/-1;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted);
+  display:flex;gap:14px;flex-wrap:wrap;padding-top:2px}
+.rowmeta.hide{display:none}
+
+/* instrument panel (metrics) */
+.instr{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.cell{background:var(--surface);padding:12px 14px}
+.cell .k{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.cell .v{font-family:"IBM Plex Mono",monospace;font-size:22px;font-weight:600;margin-top:3px}
+.cell.wide{grid-column:1/-1}
+.cell .v small{font-size:13px;color:var(--muted);font-weight:400}
+.completion .v{font-size:30px}
+.completion.over .v{color:var(--ok)}
+
+/* freestyle explorer */
+.explorer-tools{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.explorer-tools input,.explorer-tools select{width:auto;min-width:150px;flex:1}
+table.exp{width:100%;border-collapse:collapse;font-size:13px}
+table.exp th,table.exp td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line)}
+table.exp th{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+table.exp td.num{font-family:"IBM Plex Mono",monospace;text-align:right}
+.pill{display:inline-block;font-size:11px;padding:2px 7px;border-radius:20px;background:var(--paper);border:1px solid var(--line);color:var(--muted)}
+
+/* submit */
+.submit-note{font-size:12px;color:var(--muted);margin-top:10px}
+.status{margin-top:12px;padding:10px 12px;border-radius:var(--radius);font-size:14px;display:none}
+.status.show{display:block}
+.status.ok{background:#eaf4ec;border:1px solid #bcdcc3;color:#255c33}
+.status.err{background:#fbeee8;border:1px solid #f0c7b8;color:#8a3311}
+.status.work{background:#eef2f4;border:1px solid var(--line);color:var(--ink)}
+
+.foot{max-width:1400px;margin:0 auto;padding:22px 20px 40px;color:var(--muted);font-size:13px}
+.todo{background:#fff;border:1px dashed var(--line);border-radius:var(--radius);padding:12px 14px;margin-top:14px;font-size:13px;color:var(--muted)}
+.todo b{color:var(--ink)}
+.loaderr{background:#fbeee8;border:1px solid #f0c7b8;color:#8a3311;padding:12px 14px;border-radius:var(--radius);margin:14px 0}
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="mast-inner">
+    <div class="eyebrow">OttawaVisuals · active commute challenge</div>
+    <h1>Commute-a-thlon</h1>
+    <div class="line" id="masthead-line" aria-hidden="true">
+      <div class="seg-line seg-swim"><span class="node"></span><span class="bar"><span id="ml-swim"></span></span><span class="seg-label">SWIM</span></div>
+      <div class="seg-line seg-bike"><span class="node"></span><span class="bar"><span id="ml-bike"></span></span><span class="seg-label">BIKE</span></div>
+      <div class="seg-line seg-run"><span class="node"></span><span class="bar"><span id="ml-run"></span></span><span class="node"></span><span class="seg-label">RUN</span></div>
+    </div>
+  </div>
+</header>
+
+<div id="load-error" class="loaderr" style="display:none;max-width:1400px;margin:14px auto 0"></div>
+
+<main>
+  <!-- LEFT COLUMN -->
+  <div class="stack">
+
+    <!-- 1 · TARGET -->
+    <section class="panel">
+      <div class="phead"><span class="idx">01</span><h2>Set your target</h2></div>
+      <div class="pbody">
+        <div class="grid2">
+          <div class="field"><label for="displayName">Display name</label><input id="displayName" placeholder="e.g. J. Tremblay" autocomplete="name" /></div>
+          <div class="field"><label for="team">Team / branch</label><input id="team" placeholder="e.g. Data Services" /></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label for="commuteMode">Usual commute mode</label><input id="commuteMode" placeholder="e.g. OC Transpo + walk" /></div>
+          <div class="field">
+            <label for="targetDistance">Challenge distance (km)</label>
+            <input id="targetDistance" type="number" min="0" step="0.1" inputmode="decimal" />
+            <div class="hint">Total distance to split across swim / bike / run.</div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Format</label>
+          <div class="seg-toggle" role="group" aria-label="Target format">
+            <button type="button" data-format="olympic" aria-pressed="true">Olympic</button>
+            <button type="button" data-format="ironman" aria-pressed="false">Ironman</button>
+          </div>
+          <div class="hint" id="format-hint"></div>
+        </div>
+
+        <div class="tbars" aria-label="Target by discipline">
+          <div class="tbar swim"><span class="cap">Swim</span><div class="track"><div class="fill" id="tfill-swim"></div></div><span class="val" id="tval-swim">—</span></div>
+          <div class="tbar bike"><span class="cap">Bike</span><div class="track"><div class="fill" id="tfill-bike"></div></div><span class="val" id="tval-bike">—</span></div>
+          <div class="tbar run"><span class="cap">Run</span><div class="track"><div class="fill" id="tfill-run"></div></div><span class="val" id="tval-run">—</span></div>
+        </div>
+        <div class="hint" style="margin-top:8px">Bars show each discipline's share of the target. Fill = distance you've drawn on the map below.</div>
+      </div>
+    </section>
+
+    <!-- 2 · ROUTE -->
+    <section class="panel">
+      <div class="phead"><span class="idx">02</span><h2>Sketch your route</h2></div>
+      <div class="pbody">
+        <div class="map-tools">
+          <span style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Drawing:</span>
+          <button type="button" class="pen swim" data-pen="swim" aria-pressed="true"><span class="dot"></span>Swim</button>
+          <button type="button" class="pen bike" data-pen="bike" aria-pressed="false"><span class="dot"></span>Bike</button>
+          <button type="button" class="pen run"  data-pen="run"  aria-pressed="false"><span class="dot"></span>Run</button>
+          <span style="flex:1"></span>
+          <button type="button" class="btn ghost sm" id="undoPoint">Undo point</button>
+          <button type="button" class="btn ghost sm" id="clearSeg">Clear segment</button>
+        </div>
+        <div id="map"></div>
+        <div class="map-readout">
+          <span><b style="color:var(--swim)">Swim</b> <span id="drawn-swim" class="mono">0.00</span> km</span>
+          <span><b style="color:var(--bike)">Bike</b> <span id="drawn-bike" class="mono">0.00</span> km</span>
+          <span><b style="color:var(--run)">Run</b> <span id="drawn-run" class="mono">0.00</span> km</span>
+          <span>· Total drawn <b id="drawn-total" class="mono">0.00</b> km</span>
+          <span>· vs target <b id="drawn-diff" class="mono">—</b></span>
+        </div>
+        <div class="hint" style="margin-top:8px">Click the map to drop points for the selected discipline. Distance follows the great-circle path between points.</div>
+      </div>
+    </section>
+
+    <!-- 3 · ACTIVITIES -->
+    <section class="panel">
+      <div class="phead"><span class="idx">03</span><h2>Log your activities</h2><span class="idx" id="activity-count-badge">0 logged</span></div>
+      <div class="pbody">
+        <div id="activityRows"></div>
+        <div class="btn-row" style="margin-top:6px">
+          <button type="button" class="btn" id="addActivity">+ Add activity</button>
+          <div class="field" style="margin:0;min-width:150px">
+            <label for="transition" style="margin-bottom:3px">Transition minutes</label>
+            <input id="transition" type="number" min="0" step="1" inputmode="numeric" value="0" />
+          </div>
+          <div class="field" style="margin:0;min-width:150px">
+            <label for="season" style="margin-bottom:3px">Season</label>
+            <select id="season"></select>
+          </div>
+        </div>
+        <div class="field" style="margin-top:12px">
+          <label for="notes">Notes</label>
+          <textarea id="notes" rows="2" placeholder="Anything worth remembering about this commute."></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5 · FREESTYLE / MET EXPLORER -->
+    <section class="panel">
+      <div class="phead"><span class="idx">05</span><h2>Freestyle · MET explorer</h2></div>
+      <div class="pbody">
+        <div class="explorer-tools">
+          <input id="expSearch" placeholder="Search activities…" />
+          <select id="expCat"><option value="">All categories</option></select>
+          <div class="field" style="margin:0;display:flex;gap:6px;align-items:end">
+            <div><label for="expMin" style="margin-bottom:3px">Minutes</label><input id="expMin" type="number" min="0" step="1" value="30" style="width:90px" /></div>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="exp">
+            <thead><tr>
+              <th>Activity</th><th>Category</th><th class="num">MET</th><th class="num">km/h</th>
+              <th class="num">Fun</th><th class="num">Orig.</th><th class="num">MET·min</th>
+            </tr></thead>
+            <tbody id="expBody"></tbody>
+          </table>
+        </div>
+        <div class="hint" style="margin-top:8px">MET·min = MET × minutes, using the value in the Minutes box. Data-driven from <span class="mono">data/activities.csv</span>.</div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- RIGHT COLUMN -->
+  <div class="sticky-col">
+
+    <!-- 4 · METRICS -->
+    <section class="panel">
+      <div class="phead"><span class="idx">04</span><h2>Live metrics</h2></div>
+      <div class="pbody">
+        <div class="instr">
+          <div class="cell completion wide" id="cell-completion">
+            <div class="k">Completion vs target</div>
+            <div class="v" id="m-completion">—</div>
+          </div>
+          <div class="cell"><div class="k">MET·minutes</div><div class="v" id="m-met">0</div></div>
+          <div class="cell"><div class="k">Activities</div><div class="v" id="m-count">0</div></div>
+          <div class="cell"><div class="k">Active min</div><div class="v" id="m-active">0</div></div>
+          <div class="cell"><div class="k">Elapsed min</div><div class="v" id="m-elapsed">0</div></div>
+          <div class="cell"><div class="k">Distance</div><div class="v" id="m-dist">0<small> km</small></div></div>
+          <div class="cell"><div class="k">Storeys</div><div class="v" id="m-storeys">0</div></div>
+          <div class="cell"><div class="k">Fun score</div><div class="v" id="m-fun">—</div></div>
+          <div class="cell"><div class="k">Originality</div><div class="v" id="m-orig">—</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SUBMIT -->
+    <section class="panel">
+      <div class="phead"><span class="idx">→</span><h2>Submit</h2></div>
+      <div class="pbody">
+        <button type="button" class="btn" id="submitBtn" style="width:100%;padding:12px">Submit commute</button>
+        <div class="status" id="status" role="status" aria-live="polite"></div>
+        <p class="submit-note">Writes one row to <b>Submissions</b> and one row per activity to <b>Activities</b>.</p>
+        <div class="todo">
+          <b>Not yet wired:</b> leaderboards, awards, trends, personal records and community ratings all need a <span class="mono">doGet</span> read endpoint on the Apps Script that returns sheet data. The client and CSVs are ready for them — see the README.
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer class="foot">
+  Commute-a-thlon · <a href="https://github.com/OttawaVisuals/Commute-a-thlon">OttawaVisuals/Commute-a-thlon</a> · MET values from the 2024 Adult Compendium of Physical Activities.
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+"use strict";
+
+/* ====================== CONFIG ====================== */
+// Google Apps Script Web App endpoint (from project handoff).
+const API_URL = "https://script.google.com/macros/s/AKfycbxClBwX2mBALo4S5iCWfETo_o5fWC8IAzWBnx84ryFxJ3QhxAZZ59ccwZ0NmU94P-qs/exec";
+
+// Canonical triathlon splits — used only to derive discipline PROPORTIONS.
+const FORMATS = {
+  olympic: { label:"Olympic", swim:1.5,  bike:40,  run:10   },
+  ironman: { label:"Ironman", swim:3.86, bike:180, run:42.2 },
+};
+
+/* ====================== STATE ====================== */
+const state = {
+  activities: [],          // from activities.csv
+  categories: [],          // from categories.csv
+  seasons: [],             // from seasons.csv
+  byId: {},                // activity_id -> activity
+  format: "olympic",
+  rows: [],                // user activity entries
+  drawn: { swim:0, bike:0, run:0 },
+};
+let rowSeq = 0;
+
+/* ====================== CSV ====================== */
+function parseCSV(text){
+  const lines = text.split(/\r?\n/)
+    .filter(l => l.trim() !== "" && l.replace(/,/g,"").trim() !== "");
+  if(!lines.length) return [];
+  const header = splitCSVLine(lines[0]);
+  return lines.slice(1).map(line => {
+    const cells = splitCSVLine(line);
+    const o = {};
+    header.forEach((h,i)=> o[h.trim()] = (cells[i] ?? "").trim());
+    return o;
+  });
+}
+// Minimal quote-aware splitter (data has no embedded commas, but be safe).
+function splitCSVLine(line){
+  const out=[]; let cur=""; let q=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c === '"'){ q=!q; continue; }
+    if(c === ',' && !q){ out.push(cur); cur=""; continue; }
+    cur+=c;
+  }
+  out.push(cur);
+  return out;
+}
+async function loadCSV(path){
+  const res = await fetch(path, {cache:"no-store"});
+  if(!res.ok) throw new Error(path + " → HTTP " + res.status);
+  return parseCSV(await res.text());
+}
+
+/* ====================== INIT ====================== */
+async function init(){
+  try{
+    const [acts, cats, seasons] = await Promise.all([
+      loadCSV("./data/activities.csv"),
+      loadCSV("./data/categories.csv"),
+      loadCSV("./data/seasons.csv"),
+    ]);
+    state.activities = acts.filter(a => (a.status||"active") === "active");
+    state.categories = cats.sort((a,b)=> (+a.sort_order||99) - (+b.sort_order||99));
+    state.seasons = seasons;
+    state.byId = Object.fromEntries(state.activities.map(a => [a.activity_id, a]));
+  }catch(err){
+    const box = document.getElementById("load-error");
+    box.style.display = "block";
+    box.innerHTML = "Couldn't load CSV data (" + err.message +
+      "). This page must be served over http/https with the <span class='mono'>data/</span> folder alongside it — GitHub Pages works; opening the file directly does not.";
+    return;
+  }
+
+  buildSeasonSelect();
+  buildExplorerCategorySelect();
+  wireFormatToggle();
+  wireTargetInputs();
+  wireActivityControls();
+  wireExplorer();
+  wireSubmit();
+  initMap();
+
+  addActivityRow();          // start with one row
+  setFormat("olympic", true);
+  renderExplorer();
+  recompute();
+}
+
+/* ====================== TARGET / FORMAT ====================== */
+function wireFormatToggle(){
+  document.querySelectorAll('.seg-toggle button[data-format]').forEach(btn=>{
+    btn.addEventListener("click", ()=> setFormat(btn.dataset.format));
+  });
+}
+function setFormat(fmt, prefillIfEmpty){
+  state.format = fmt;
+  document.querySelectorAll('.seg-toggle button[data-format]').forEach(b=>
+    b.setAttribute("aria-pressed", String(b.dataset.format === fmt)));
+  const f = FORMATS[fmt];
+  const canonicalTotal = f.swim + f.bike + f.run;
+  document.getElementById("format-hint").textContent =
+    f.label + " split ≈ " + f.swim + " / " + f.bike + " / " + f.run + " km. Canonical total " + canonicalTotal.toFixed(2) + " km.";
+  const dEl = document.getElementById("targetDistance");
+  if(prefillIfEmpty && !dEl.value) dEl.value = canonicalTotal;
+  renderTargets();
+}
+function wireTargetInputs(){
+  document.getElementById("targetDistance").addEventListener("input", ()=>{ renderTargets(); recompute(); });
+}
+function targetSplit(){
+  const f = FORMATS[state.format];
+  const total = f.swim + f.bike + f.run;
+  const dist = parseFloat(document.getElementById("targetDistance").value) || 0;
+  return {
+    total: dist,
+    swim: dist * f.swim/total,
+    bike: dist * f.bike/total,
+    run:  dist * f.run/total,
+  };
+}
+function renderTargets(){
+  const t = targetSplit();
+  const setBar = (disc)=>{
+    const target = t[disc];
+    const drawn = state.drawn[disc];
+    const pct = target>0 ? Math.min(100, drawn/target*100) : 0;
+    document.getElementById("tfill-"+disc).style.width = pct + "%";
+    document.getElementById("tval-"+disc).textContent =
+      drawn.toFixed(2) + " / " + target.toFixed(2) + " km";
+    // masthead mirror
+    const ml = document.getElementById("ml-"+disc);
+    if(ml) ml.style.width = pct + "%";
+  };
+  ["swim","bike","run"].forEach(setBar);
+}
+
+/* ====================== MAP ====================== */
+let map, activePen = "swim";
+const penLayers = {}; // disc -> {latlngs, polyline, markers}
+function initMap(){
+  map = L.map("map", {scrollWheelZoom:false}).setView([45.4215, -75.6972], 12); // Ottawa
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom:19, attribution:"© OpenStreetMap contributors"
+  }).addTo(map);
+  const colors = {swim:getCSS("--swim"), bike:getCSS("--bike"), run:getCSS("--run")};
+  ["swim","bike","run"].forEach(disc=>{
+    penLayers[disc] = {
+      latlngs:[],
+      polyline: L.polyline([], {color:colors[disc], weight:4}).addTo(map),
+      markers: L.layerGroup().addTo(map),
+    };
+  });
+  map.on("click", e=> addMapPoint(e.latlng));
+
+  document.querySelectorAll(".pen[data-pen]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      activePen = btn.dataset.pen;
+      document.querySelectorAll(".pen[data-pen]").forEach(b=>
+        b.setAttribute("aria-pressed", String(b.dataset.pen===activePen)));
+    });
+  });
+  document.getElementById("undoPoint").addEventListener("click", ()=>{
+    const L2 = penLayers[activePen];
+    if(L2.latlngs.length){ L2.latlngs.pop(); redrawSeg(activePen); }
+  });
+  document.getElementById("clearSeg").addEventListener("click", ()=>{
+    penLayers[activePen].latlngs = []; redrawSeg(activePen);
+  });
+}
+function getCSS(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function addMapPoint(latlng){
+  penLayers[activePen].latlngs.push(latlng);
+  redrawSeg(activePen);
+}
+function redrawSeg(disc){
+  const L2 = penLayers[disc];
+  L2.polyline.setLatLngs(L2.latlngs);
+  L2.markers.clearLayers();
+  const color = getCSS("--"+disc);
+  L2.latlngs.forEach(ll=>{
+    L.circleMarker(ll, {radius:4, color:color, fillColor:"#fff", fillOpacity:1, weight:2}).addTo(L2.markers);
+  });
+  // distance
+  let km=0;
+  for(let i=1;i<L2.latlngs.length;i++) km += L2.latlngs[i-1].distanceTo(L2.latlngs[i]);
+  km/=1000;
+  state.drawn[disc] = km;
+  document.getElementById("drawn-"+disc).textContent = km.toFixed(2);
+  const total = state.drawn.swim + state.drawn.bike + state.drawn.run;
+  document.getElementById("drawn-total").textContent = total.toFixed(2);
+  const t = targetSplit();
+  document.getElementById("drawn-diff").textContent =
+    t.total>0 ? ((total - t.total>=0?"+":"") + (total - t.total).toFixed(2) + " km") : "—";
+  renderTargets();
+}
+
+/* ====================== ACTIVITY ROWS ====================== */
+function wireActivityControls(){
+  document.getElementById("addActivity").addEventListener("click", addActivityRow);
+  document.getElementById("transition").addEventListener("input", recompute);
+}
+function addActivityRow(){
+  const id = "row-" + (rowSeq++);
+  const wrap = document.createElement("div");
+  wrap.className = "arow";
+  wrap.dataset.id = id;
+  wrap.innerHTML = `
+    <div><label>Category</label>
+      <select data-role="cat">${state.categories.map(c=>`<option value="${c.category_id}">${esc(c.name)}</option>`).join("")}</select></div>
+    <div><label>Activity</label><select data-role="act"></select></div>
+    <div data-role="primary-wrap"><label data-role="primary-label">Distance (km)</label>
+      <input data-role="primary" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" /></div>
+    <div><label>Time (min)</label><input data-role="time" type="number" min="0" step="0.1" inputmode="decimal" placeholder="auto" /></div>
+    <button type="button" class="del" title="Delete activity" aria-label="Delete activity">✕</button>
+    <div class="rowmeta hide" data-role="meta"></div>`;
+  document.getElementById("activityRows").appendChild(wrap);
+
+  const catSel = wrap.querySelector('[data-role="cat"]');
+  const actSel = wrap.querySelector('[data-role="act"]');
+  catSel.addEventListener("change", ()=>{ fillActivities(catSel.value, actSel); onRowActivityChange(wrap); });
+  actSel.addEventListener("change", ()=> onRowActivityChange(wrap));
+  wrap.querySelector('[data-role="primary"]').addEventListener("input", recompute);
+  wrap.querySelector('[data-role="time"]').addEventListener("input", recompute);
+  wrap.querySelector(".del").addEventListener("click", ()=>{ wrap.remove(); recompute(); });
+
+  fillActivities(catSel.value, actSel);
+  onRowActivityChange(wrap);
+}
+function fillActivities(catId, actSel){
+  const list = state.activities.filter(a => a.category === catId);
+  actSel.innerHTML = list.length
+    ? list.map(a=>`<option value="${a.activity_id}">${esc(a.name)}</option>`).join("")
+    : `<option value="">— none in this category —</option>`;
+}
+function onRowActivityChange(wrap){
+  const actId = wrap.querySelector('[data-role="act"]').value;
+  const a = state.byId[actId];
+  const label = wrap.querySelector('[data-role="primary-label"]');
+  const primary = wrap.querySelector('[data-role="primary"]');
+  const primaryWrap = wrap.querySelector('[data-role="primary-wrap"]');
+  const timeInput = wrap.querySelector('[data-role="time"]');
+  if(!a){ recompute(); return; }
+  if(a.unit === "storeys"){
+    label.textContent = "Storeys"; primary.placeholder="0"; primaryWrap.style.visibility="visible";
+    timeInput.placeholder="min";
+  } else if(a.unit === "minutes"){
+    primaryWrap.style.visibility="hidden";              // time-only activity
+    timeInput.placeholder="min";
+  } else { // km
+    label.textContent = "Distance (km)"; primary.placeholder="0"; primaryWrap.style.visibility="visible";
+    timeInput.placeholder="auto";
+  }
+  recompute();
+}
+
+/* ====================== COMPUTE ====================== */
+function computeRow(wrap){
+  const actId = wrap.querySelector('[data-role="act"]').value;
+  const a = state.byId[actId];
+  if(!a) return null;
+  const primary = parseFloat(wrap.querySelector('[data-role="primary"]').value) || 0;
+  let time = parseFloat(wrap.querySelector('[data-role="time"]').value);
+  const speed = parseFloat(a.speed_kmh) || 0;
+
+  let distanceKm=0, storeys=0, unit=a.unit, calcSpeed="";
+  if(a.unit === "km"){
+    distanceKm = primary;
+    if(!(time>0)) time = speed>0 ? (distanceKm/speed*60) : 0;   // derive from speed
+    if(time>0) calcSpeed = (distanceKm/(time/60));
+  } else if(a.unit === "storeys"){
+    storeys = primary;
+    time = time>0 ? time : 0;
+  } else { // minutes
+    time = time>0 ? time : 0;
+  }
+  const metMin = (parseFloat(a.met)||0) * (time||0);
+  return {
+    wrap, activity:a, category:a.category,
+    distanceKm, storeys, unit,
+    timeMin: time||0, metMin,
+    fun: parseFloat(a.fun_factor)||0,
+    orig: parseFloat(a.originality_factor)||0,
+    calcSpeed,
+  };
+}
+function recompute(){
+  const rows = [];
+  document.querySelectorAll("#activityRows .arow").forEach(w=>{
+    const r = computeRow(w);
+    if(r) rows.push(r);
+    updateRowMeta(w, r);
+  });
+  state.rows = rows;
+
+  const totalDist = sum(rows.map(r=>r.distanceKm));
+  const totalStoreys = sum(rows.map(r=>r.storeys));
+  const activeMin = sum(rows.map(r=>r.timeMin));
+  const metMin = sum(rows.map(r=>r.metMin));
+  const transition = parseFloat(document.getElementById("transition").value)||0;
+  const elapsed = activeMin + transition;
+  const count = rows.length;
+  const funAvg = count ? sum(rows.map(r=>r.fun))/count : null;
+  const origAvg = count ? sum(rows.map(r=>r.orig))/count : null;
+  const target = targetSplit();
+  const completion = target.total>0 ? (totalDist/target.total*100) : null;
+
+  // paint instrument panel
+  setText("m-met", Math.round(metMin).toLocaleString());
+  setText("m-count", count);
+  setText("m-active", Math.round(activeMin).toLocaleString());
+  setText("m-elapsed", Math.round(elapsed).toLocaleString());
+  document.getElementById("m-dist").innerHTML = totalDist.toFixed(2) + "<small> km</small>";
+  setText("m-storeys", Math.round(totalStoreys).toLocaleString());
+  setText("m-fun", funAvg==null ? "—" : funAvg.toFixed(1));
+  setText("m-orig", origAvg==null ? "—" : origAvg.toFixed(1));
+  const compCell = document.getElementById("cell-completion");
+  if(completion==null){ setText("m-completion","—"); compCell.classList.remove("over"); }
+  else{
+    setText("m-completion", completion.toFixed(0) + "%");
+    compCell.classList.toggle("over", completion>=100);
+  }
+  setText("activity-count-badge", count + " logged");
+}
+function updateRowMeta(wrap, r){
+  const meta = wrap.querySelector('[data-role="meta"]');
+  if(!r || (r.metMin===0 && r.distanceKm===0 && r.storeys===0)){ meta.classList.add("hide"); return; }
+  meta.classList.remove("hide");
+  const bits = [`MET ${r.activity.met}`, `${r.timeMin.toFixed(1)} min`, `${Math.round(r.metMin)} MET·min`];
+  if(r.unit==="km" && r.calcSpeed) bits.push(`${(+r.calcSpeed).toFixed(1)} km/h`);
+  if(r.unit==="storeys") bits.push(`${r.storeys} storeys`);
+  bits.push(`fun ${r.fun} · orig ${r.orig}`);
+  meta.textContent = bits.join("   ·   ");
+}
+
+/* ====================== EXPLORER ====================== */
+function buildExplorerCategorySelect(){
+  const sel = document.getElementById("expCat");
+  state.categories.forEach(c=>{
+    const o=document.createElement("option"); o.value=c.category_id; o.textContent=c.name; sel.appendChild(o);
+  });
+}
+function wireExplorer(){
+  ["expSearch","expCat","expMin"].forEach(id=>
+    document.getElementById(id).addEventListener("input", renderExplorer));
+}
+function renderExplorer(){
+  const q = document.getElementById("expSearch").value.toLowerCase();
+  const cat = document.getElementById("expCat").value;
+  const mins = parseFloat(document.getElementById("expMin").value)||0;
+  const catName = Object.fromEntries(state.categories.map(c=>[c.category_id,c.name]));
+  const rows = state.activities.filter(a=>
+    (!cat || a.category===cat) &&
+    (!q || a.name.toLowerCase().includes(q))
+  );
+  document.getElementById("expBody").innerHTML = rows.map(a=>`
+    <tr>
+      <td>${esc(a.name)}</td>
+      <td><span class="pill">${esc(catName[a.category]||a.category)}</span></td>
+      <td class="num">${a.met}</td>
+      <td class="num">${a.speed_kmh||"—"}</td>
+      <td class="num">${a.fun_factor}</td>
+      <td class="num">${a.originality_factor}</td>
+      <td class="num">${Math.round((parseFloat(a.met)||0)*mins).toLocaleString()}</td>
+    </tr>`).join("") || `<tr><td colspan="7" style="color:var(--muted)">No activities match.</td></tr>`;
+}
+
+/* ====================== SEASONS ====================== */
+function buildSeasonSelect(){
+  const sel = document.getElementById("season");
+  state.seasons.forEach(s=>{
+    const o=document.createElement("option"); o.value=s.season; o.textContent=s.name; sel.appendChild(o);
+  });
+  sel.value = "all";
+}
+
+/* ====================== SUBMIT ====================== */
+function wireSubmit(){ document.getElementById("submitBtn").addEventListener("click", submit); }
+
+function seasonForRow(cat){
+  if(cat==="winter") return "winter";
+  if(cat==="water")  return "summer";
+  return document.getElementById("season").value || "all";
+}
+// NOTE: keys are camelCase to match the Apps Script doPost, which reads
+// data.displayName, activity.activityId, etc. The script generates
+// SubmissionID / Timestamp / Year / Month / Week server-side, so we don't send them.
+function buildPayload(){
+  const t = targetSplit();
+  const rows = state.rows;
+  const count = rows.length;
+  const totalDist = sum(rows.map(r=>r.distanceKm));
+  const activeMin = sum(rows.map(r=>r.timeMin));
+  const metMin = sum(rows.map(r=>r.metMin));
+  const transition = parseFloat(document.getElementById("transition").value)||0;
+  const funAvg = count ? sum(rows.map(r=>r.fun))/count : 0;
+  const origAvg = count ? sum(rows.map(r=>r.orig))/count : 0;
+  const completion = t.total>0 ? (totalDist/t.total*100) : 0;
+
+  return {
+    displayName: val("displayName"),
+    team: val("team"),
+    usualCommuteMode: val("commuteMode"),
+    targetDistanceKm: round2(t.total),
+    targetFormat: FORMATS[state.format].label,
+    targetSwimKm: round2(t.swim),
+    targetBikeKm: round2(t.bike),
+    targetRunKm: round2(t.run),
+    drawnSwimKm: round2(state.drawn.swim),
+    drawnBikeKm: round2(state.drawn.bike),
+    drawnRunKm: round2(state.drawn.run),
+    transitionMinutes: transition,
+    totalDistanceKm: round2(totalDist),
+    totalActiveMinutes: round1(activeMin),
+    totalElapsedMinutes: round1(activeMin + transition),
+    totalMETMinutes: round1(metMin),
+    funScore: round1(funAvg),
+    originalityScore: round1(origAvg),
+    completionPercent: round1(completion),
+    activityCount: count,
+    notes: val("notes"),
+    activities: rows.map(r=>({
+      category: r.category,
+      activityId: r.activity.activity_id,
+      activityName: r.activity.name,
+      distance: r.unit==="storeys" ? r.storeys : (r.unit==="minutes" ? 0 : round2(r.distanceKm)),
+      distanceUnit: r.unit,
+      timeMinutes: round1(r.timeMin),
+      met: parseFloat(r.activity.met)||0,
+      metMinutes: round1(r.metMin),
+      funFactor: r.fun,
+      originalityFactor: r.orig,
+      calculatedSpeed: r.calcSpeed ? round1(+r.calcSpeed) : 0,
+      season: seasonForRow(r.category),
+    })),
+  };
+}
+
+async function submit(){
+  const status = document.getElementById("status");
+  const name = val("displayName");
+  if(!name){ return showStatus("err", "Add a display name before submitting."); }
+  if(!state.rows.length){ return showStatus("err", "Log at least one activity before submitting."); }
+
+  const payload = buildPayload();
+  const btn = document.getElementById("submitBtn");
+  btn.disabled = true;
+  showStatus("work", "Sending…");
+
+  try{
+    // Apps Script web apps don't return CORS headers, so we POST as a "simple"
+    // request (text/plain, no preflight) with mode:no-cors. The write succeeds
+    // but the response is opaque — we can't read status. Treat as optimistic.
+    await fetch(API_URL, {
+      method:"POST",
+      mode:"no-cors",
+      headers:{ "Content-Type":"text/plain;charset=utf-8" },
+      body: JSON.stringify(payload),
+    });
+    showStatus("ok",
+      "Submitted " + payload.activities.length + " activit" +
+      (payload.activities.length===1?"y":"ies") +
+      ". The Apps Script response is opaque by design (no-cors) — confirm the rows landed in the sheet.");
+  }catch(err){
+    showStatus("err", "Network error: " + err.message +
+      ". Payload logged to the console so nothing is lost.");
+    console.error("Submission failed. Payload:", payload);
+  }finally{
+    btn.disabled = false;
+  }
+}
+function showStatus(kind, msg){
+  const s = document.getElementById("status");
+  s.className = "status show " + kind;
+  s.textContent = msg;
+}
+
+/* ====================== UTIL ====================== */
+function sum(a){ return a.reduce((x,y)=>x+(+y||0),0); }
+function val(id){ return document.getElementById(id).value.trim(); }
+function setText(id,v){ const el=document.getElementById(id); if(el) el.textContent = v; }
+function round1(n){ return Math.round(n*10)/10; }
+function round2(n){ return Math.round(n*100)/100; }
+function esc(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+document.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>
