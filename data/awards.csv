@@ -1,0 +1,14 @@
+award_id,name,description
+
+met_monster,MET Monster,Highest MET-minutes
+speed_demon,Speed Demon,Fastest total commute time
+commute_athlon_champion,Commute-a-thlon Champion,Highest completion percentage
+office_tower_legend,Office Tower Legend,Most storeys climbed
+winter_warrior,Winter Warrior,Highest winter sport distance
+water_creature,Canal Creature,Highest water activity distance
+human_hybrid,Human Hybrid,Most activity types used
+wheel_wizard,Wheel Wizard,Highest wheeled distance
+most_original,Most Original,Highest originality score
+fun_machine,Fun Machine,Highest fun score
+daily_grinder,Daily Grinder,Most submissions
+personal_best,Personal Best,Largest improvement versus previous average
