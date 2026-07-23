@@ -182,15 +182,12 @@ input:focus,select:focus,textarea:focus{border-color:var(--swim);background:#fff
 .wq-pill.avoid{background:#fbe6e9;color:#9c2038}
 .wq-pill.unknown{background:var(--paper);color:var(--muted)}
 
-/* water quality map */
-#wqMap{height:420px;border:1.5px solid var(--line);border-radius:var(--radius);z-index:1}
+/* water quality map — square, capped so it doesn't take over ultra-wide screens */
+#wqMap{width:100%;max-width:640px;aspect-ratio:1/1;margin:0 auto;border:1.5px solid var(--line);border-radius:var(--radius);z-index:1}
 .wq-legend{display:flex;flex-wrap:wrap;gap:14px;margin:10px 0;font-size:12px;font-weight:600;color:var(--muted)}
 .wq-legend .lg{display:flex;align-items:center;gap:6px}
 .wq-legend .sw{width:11px;height:11px;border-radius:50%;flex:none;border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
 .wq-tooltip{font-family:Inter,sans-serif}
-.wq-tooltip .row{display:flex;justify-content:space-between;gap:14px;padding:2px 0;font-size:12px}
-.wq-tooltip .row .v{display:flex;align-items:center;gap:5px;font-family:"IBM Plex Mono",monospace}
-.wq-tooltip .row .v .dot{width:7px;height:7px;border-radius:50%;flex:none}
 .wq-tooltip .head{font-weight:700;font-family:"Space Grotesk",sans-serif;margin-bottom:3px}
 .wq-tooltip .sub{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:6px 0 2px}
 
@@ -1003,24 +1000,44 @@ function wqStatus(value){
 function wqColor(cls){
   return cls==="good" ? getCSS("--ok") : cls==="caution" ? getCSS("--gold") : cls==="avoid" ? getCSS("--danger") : getCSS("--muted");
 }
-// Compact recent-history list for a site's hover tooltip, newest first.
+// Small inline line chart for a site's recent E. coli history, with dashed
+// reference lines at the 200 (caution) and 400 (avoid) cfu/100mL thresholds.
+function buildWqChartSVG(history){
+  const W=228, H=104, padL=30, padR=8, padT=10, plotH=64, plotW=W-padL-padR;
+  if(!history.length) return `<div style="color:var(--muted);font-size:11px;padding:6px 0">No history</div>`;
+  const domainMax = Math.max(400, ...history.map(h=>h.value)) * 1.08;
+  const x = i => padL + (history.length>1 ? i/(history.length-1)*plotW : plotW/2);
+  const y = v => padT + plotH - (v/domainMax)*plotH;
+  const pts = history.map((h,i)=> `${x(i).toFixed(1)},${y(h.value).toFixed(1)}`).join(" ");
+  const dots = history.map((h,i)=>{
+    const st = wqStatus(h.value);
+    return `<circle cx="${x(i).toFixed(1)}" cy="${y(h.value).toFixed(1)}" r="2.6" fill="${wqColor(st.cls)}" stroke="#fff" stroke-width="1"/>`;
+  }).join("");
+  const gold = getCSS("--gold"), danger = getCSS("--danger"), ink = getCSS("--ink"), muted = getCSS("--muted");
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block">
+    <line x1="${padL}" y1="${y(400).toFixed(1)}" x2="${W-padR}" y2="${y(400).toFixed(1)}" stroke="${danger}" stroke-width="1" stroke-dasharray="3,3" opacity=".7"/>
+    <text x="${padL-3}" y="${(y(400)+3).toFixed(1)}" text-anchor="end" font-size="8" fill="${danger}">400</text>
+    <line x1="${padL}" y1="${y(200).toFixed(1)}" x2="${W-padR}" y2="${y(200).toFixed(1)}" stroke="${gold}" stroke-width="1" stroke-dasharray="3,3" opacity=".7"/>
+    <text x="${padL-3}" y="${(y(200)+3).toFixed(1)}" text-anchor="end" font-size="8" fill="${gold}">200</text>
+    <polyline points="${pts}" fill="none" stroke="${ink}" stroke-width="1.5"/>
+    ${dots}
+    <text x="${padL}" y="${H-4}" font-size="8" fill="${muted}">${esc(history[0].date)}</text>
+    <text x="${W-padR}" y="${H-4}" text-anchor="end" font-size="8" fill="${muted}">${esc(history[history.length-1].date)}</text>
+  </svg>`;
+}
 function buildWqTooltipHTML(site){
   const latest = state.wqBySite[site];
   const latestSt = latest ? wqStatus(latest.value) : wqStatus(null);
   const history = state.waterQuality
     .filter(r => r.site===site && r.parameter==="ecoli_cfu_100ml" && (parseFloat(r.value)>=0))
-    .sort((a,b)=> b.date.localeCompare(a.date))
-    .slice(0, 8);
-  const rows = history.map(r=>{
-    const st = wqStatus(parseFloat(r.value));
-    return `<div class="row"><span>${esc(r.date)}</span>
-      <span class="v"><span class="dot" style="background:${wqColor(st.cls)}"></span>${Math.round(parseFloat(r.value))}</span></div>`;
-  }).join("") || `<div class="row" style="color:var(--muted)">No history</div>`;
+    .map(r => ({date:r.date, value:parseFloat(r.value)}))
+    .sort((a,b)=> a.date.localeCompare(b.date)) // chronological, oldest first, for the chart
+    .slice(-10);
   return `<div class="wq-tooltip">
     <div class="head">${esc(site)}</div>
     <span class="wq-pill ${latestSt.cls}"><span class="dot"></span>${latestSt.label}${latest ? ` · ${Math.round(latest.value)} cfu/100mL` : ""}</span>
     <div class="sub">Recent E. coli (cfu/100mL)</div>
-    ${rows}
+    ${buildWqChartSVG(history)}
   </div>`;
 }
 function initWqMap(){
@@ -1028,7 +1045,21 @@ function initWqMap(){
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom:19, attribution:"© OpenStreetMap contributors"
   }).addTo(wqMap);
+  // Tooltips default to opening above the dot; for dots near the top edge of
+  // the (now square) map that pushes them off-canvas, so flip to "bottom"
+  // whenever the marker is in the upper third of the current view.
+  wqMap.on("moveend zoomend", updateWqTooltipDirections);
+  window.addEventListener("resize", ()=> wqMap.invalidateSize());
   setTimeout(()=>wqMap.invalidateSize(), 0);
+}
+function updateWqTooltipDirections(){
+  if(!wqMap || !wqMarkers.length) return;
+  const h = wqMap.getSize().y;
+  wqMarkers.forEach(m=>{
+    const tt = m.getTooltip();
+    if(!tt) return;
+    tt.options.direction = wqMap.latLngToContainerPoint(m.getLatLng()).y < h*0.3 ? "bottom" : "top";
+  });
 }
 function wireWaterQuality(){
   document.getElementById("wqSearch").addEventListener("input", renderWaterQuality);
@@ -1053,6 +1084,7 @@ function renderWaterQuality(){
   if(wqMarkers.length){
     wqMap.fitBounds(L.featureGroup(wqMarkers).getBounds().pad(0.15));
   }
+  updateWqTooltipDirections();
 
   const latest = entries.reduce((max,e)=> e.date > max ? e.date : max, "");
   setText("wq-updated-badge", entries.length ? `${shown.length}/${entries.length} sites · as of ${latest}` : "no data");
