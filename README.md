@@ -89,7 +89,7 @@ If you want true confirmation in the browser, the realistic options are a proxy 
 
 ## Not yet wired
 
-Leaderboards, awards, personal records, trends, and community ratings all need to **read data back** from the sheet. That requires a `doGet` on the Apps Script that returns rows as JSON (e.g. `?sheet=Participants`); the current `doGet` only returns a health-check. Once that exists, the client can render:
+Leaderboards, awards, personal records, trends, and community ratings all need to **read data back** from the sheet — the client doesn't do this yet, but the backend now can. `apps-script/Code.gs` has a `doGet(e)` that returns a sheet's rows as JSON (e.g. `?sheet=Participants`), whitelisted to `Submissions`/`Activities`/`ActivityRatings`/`Participants`, falling back to the health-check response with no `sheet` param. It's deployed and confirmed working, including a plain cross-origin `fetch()` GET (no CORS issue — that only affected the POST path, which is why submission still uses the `no-cors` workaround). Once the client fetches and renders it, this unlocks:
 
 - **Leaderboards** — driven by `leaderboard_metrics.csv` + `awards.csv` against sheet rows.
 - **Personal records** — from the `Participants` sheet (already maintained by the script).

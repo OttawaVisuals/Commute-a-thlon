@@ -222,6 +222,18 @@ table.exp tr:hover td{background:var(--paper)}
 .pill{display:inline-block;font-size:11px;font-weight:600;padding:3px 9px;border-radius:var(--radius-pill);background:var(--paper);border:1px solid var(--line);color:var(--muted)}
 .count-pill{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:700;color:var(--muted);background:var(--paper);border:1px solid var(--line);padding:4px 11px;border-radius:var(--radius-pill)}
 
+/* leaderboard */
+table.lb tr.rank-1{background:#fdf6e3}
+table.lb tr.rank-2{background:#f6f6f4}
+table.lb tr.rank-3{background:#fbf0e6}
+.lb-rank{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;
+  font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:700;background:var(--paper);color:var(--muted)}
+.lb-rank.r1{background:#e8ab1f;color:#fff}
+.lb-rank.r2{background:#a7adb3;color:#fff}
+.lb-rank.r3{background:#c17a4a;color:#fff}
+.lb-name{font-weight:700}
+.lb-status{color:var(--muted);font-size:13px;padding:10px 0}
+
 /* fixed submit bar */
 .submitbar{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(100deg,#0d1620,var(--ink) 60%);color:#fff;
   padding:10px 20px;z-index:100;box-shadow:0 -4px 16px rgba(20,32,43,.22);border-top:3px solid transparent;border-image:var(--grad-tri) 1}
@@ -367,7 +379,7 @@ table.exp tr:hover td{background:var(--paper)}
           <div class="k">Completion vs target</div>
           <div class="v" id="m-completion">—</div>
         </div>
-        <div class="cell"><div class="k">MET·minutes</div><div class="v" id="m-met">0</div></div>
+        <div class="cell"><div class="k">Effort</div><div class="v" id="m-met">0<small> MET·min</small></div></div>
         <div class="cell"><div class="k">Activities</div><div class="v" id="m-count">0</div></div>
         <div class="cell"><div class="k">Active min</div><div class="v" id="m-active">0</div></div>
         <div class="cell"><div class="k">Elapsed min</div><div class="v" id="m-elapsed">0</div></div>
@@ -383,9 +395,12 @@ table.exp tr:hover td{background:var(--paper)}
     </div>
   </section>
 
-  <!-- 5 · FREESTYLE / MET EXPLORER -->
-  <section class="panel">
-    <div class="phead" style="--pa:var(--bike)"><span class="idx">05</span><h2>Freestyle · MET explorer</h2></div>
+  <!-- 5 · FREESTYLE / ACTIVITY EXPLORER (collapsed by default — advanced tool, not part of the core log-a-commute flow) -->
+  <details class="panel" id="explorerDetails">
+    <summary class="phead" style="--pa:var(--bike)">
+      <span style="display:flex;align-items:baseline;gap:10px"><span class="idx">05</span><h2>Freestyle · Activity explorer</h2></span>
+      <span class="summary-toggle" id="explorerToggleIcon">+ show</span>
+    </summary>
     <div class="pbody">
       <div class="explorer-tools">
         <input id="expSearch" placeholder="Search activities…" />
@@ -405,11 +420,14 @@ table.exp tr:hover td{background:var(--paper)}
       </div>
       <div class="hint" style="margin-top:8px">MET·min = MET × minutes, using the value in the Minutes box. Data-driven from <span class="mono">data/activities.csv</span>.</div>
     </div>
-  </section>
+  </details>
 
-  <!-- 6 · WATER QUALITY -->
-  <section class="panel">
-    <div class="phead" style="--pa:var(--swim)"><span class="idx">06</span><h2>Water quality</h2><span class="count-pill" id="wq-updated-badge">—</span></div>
+  <!-- 6 · WATER QUALITY (collapsed by default; map is lazy-inited on first expand) -->
+  <details class="panel" id="wqDetails">
+    <summary class="phead" style="--pa:var(--swim)">
+      <span style="display:flex;align-items:baseline;gap:10px"><span class="idx">06</span><h2>Water quality</h2><span class="count-pill" id="wq-updated-badge">—</span></span>
+      <span class="summary-toggle" id="wqToggleIcon">+ show</span>
+    </summary>
     <div class="pbody">
       <div class="explorer-tools">
         <input id="wqSearch" placeholder="Search sites…" />
@@ -429,7 +447,30 @@ table.exp tr:hover td{background:var(--paper)}
         A reading is a snapshot, not a guarantee — conditions change fast after rain.
       </div>
     </div>
-  </section>
+  </details>
+
+  <!-- 7 · LEADERBOARD (collapsed by default; fetched lazily on first expand) -->
+  <details class="panel" id="lbDetails">
+    <summary class="phead" style="--pa:var(--run)">
+      <span style="display:flex;align-items:baseline;gap:10px"><span class="idx">07</span><h2>Leaderboard</h2></span>
+      <span class="summary-toggle" id="lbToggleIcon">+ show</span>
+    </summary>
+    <div class="pbody">
+      <div class="btn-row" style="margin-bottom:10px">
+        <span class="hint" style="margin:0">Ranked by total distance logged.</span>
+        <button type="button" class="btn ghost sm" id="lbRefresh" style="margin-left:auto">Refresh</button>
+      </div>
+      <div id="lbStatus" class="lb-status"></div>
+      <div style="overflow-x:auto">
+        <table class="exp lb" id="lbTable" style="display:none">
+          <thead><tr>
+            <th>#</th><th>Name</th><th>Team</th><th class="num">Distance (km)</th><th class="num">Commutes logged</th>
+          </tr></thead>
+          <tbody id="lbBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </details>
 
 </main>
 
@@ -453,7 +494,7 @@ table.exp tr:hover td{background:var(--paper)}
 
 /* ====================== CONFIG ====================== */
 // Google Apps Script Web App endpoint (from project handoff).
-const API_URL = "https://script.google.com/macros/s/AKfycbxClBwX2mBALo4S5iCWfETo_o5fWC8IAzWBnx84ryFxJ3QhxAZZ59ccwZ0NmU94P-qs/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzJcp-2Xp4TrNmrOMsCl1-eHaBt258EpntCwW3rYGIIhbGhkW7evGJYRxxV-59mV8SH/exec";
 
 // Canonical triathlon splits — used only to derive discipline PROPORTIONS.
 const FORMATS = {
@@ -552,13 +593,12 @@ async function init(){
   wireExplorer();
   wireWaterQuality();
   wireSubmit();
-  wireRouteDetails();
+  wireLeaderboard();
+  wireCollapsibles();
 
   addActivityRow();          // start with one row
   setFormat("olympic", true);
   renderExplorer();
-  initWqMap();
-  renderWaterQuality();
   recompute();
 }
 
@@ -677,15 +717,26 @@ function renderActivityBar(rows, metScale){
     Math.round(metMin).toLocaleString() + " / " + Math.round(metScale).toLocaleString() + " MET·min";
 }
 
-/* ====================== ROUTE DETAILS (lazy map init) ====================== */
-function wireRouteDetails(){
-  const details = document.getElementById("routeDetails");
-  const icon = document.getElementById("routeToggleIcon");
+/* ====================== COLLAPSIBLE PANELS (lazy map init where needed) ====================== */
+// Route and Water quality both hold a Leaflet map, which can't size itself
+// correctly while its <details> is closed (zero-size container) — so each
+// gets its own one-time init on first expand, then just invalidateSize()
+// on every re-open in case the viewport changed while collapsed.
+function wireCollapsibles(){
+  wireCollapsible("routeDetails", "routeToggleIcon", ()=>{ initMap(); mapInited = true; }, ()=> map && map.invalidateSize());
+  wireCollapsible("explorerDetails", "explorerToggleIcon");
+  wireCollapsible("wqDetails", "wqToggleIcon", ()=>{ initWqMap(); renderWaterQuality(); }, ()=> wqMap && wqMap.invalidateSize());
+  wireCollapsible("lbDetails", "lbToggleIcon", loadLeaderboard);
+}
+function wireCollapsible(detailsId, iconId, onFirstOpen, onReopen){
+  const details = document.getElementById(detailsId);
+  const icon = document.getElementById(iconId);
+  let inited = false;
   details.addEventListener("toggle", ()=>{
     if(details.open){
       icon.textContent = "− hide";
-      if(!mapInited){ initMap(); mapInited = true; }
-      else if(map){ setTimeout(()=>map.invalidateSize(), 0); }
+      if(!inited && onFirstOpen){ onFirstOpen(); inited = true; }
+      else if(inited && onReopen){ setTimeout(onReopen, 0); }
     } else {
       icon.textContent = "+ show";
     }
@@ -903,7 +954,7 @@ function recompute(){
   const completion = target.total>0 ? (totalDist/target.total*100) : null;
 
   // paint instrument panel
-  setText("m-met", Math.round(metMin).toLocaleString());
+  document.getElementById("m-met").innerHTML = Math.round(metMin).toLocaleString() + "<small> MET·min</small>";
   setText("m-count", count);
   setText("m-active", Math.round(activeMin).toLocaleString());
   setText("m-elapsed", Math.round(elapsed).toLocaleString());
@@ -1091,6 +1142,57 @@ function renderWaterQuality(){
 }
 function nearestWqSiteOptions(){
   return Object.keys(state.wqBySite).sort((a,b)=> a.localeCompare(b));
+}
+
+/* ====================== LEADERBOARD ====================== */
+// Reads the Participants sheet back through the Apps Script doGet (?sheet=)
+// added alongside the existing doPost. Confirmed working cross-origin with a
+// plain fetch() — unlike the submission POST, this GET isn't blocked by CORS,
+// so it doesn't need the no-cors workaround.
+function wireLeaderboard(){
+  document.getElementById("lbRefresh").addEventListener("click", loadLeaderboard);
+}
+async function loadLeaderboard(){
+  const status = document.getElementById("lbStatus");
+  const table = document.getElementById("lbTable");
+  status.textContent = "Loading…";
+  status.style.display = "block";
+  table.style.display = "none";
+  try{
+    const res = await fetch(API_URL + "?sheet=Participants");
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    if(!data.success) throw new Error(data.error || "Unknown error");
+    renderLeaderboard(data.rows || []);
+  }catch(err){
+    status.textContent = "Couldn't load the leaderboard (" + err.message + "). Try Refresh.";
+  }
+}
+function renderLeaderboard(rows){
+  const status = document.getElementById("lbStatus");
+  const table = document.getElementById("lbTable");
+  const ranked = rows
+    .map(r => Object.assign({}, r, { dist: Number(r.TotalDistanceKm) || 0 }))
+    .sort((a,b)=> b.dist - a.dist);
+  if(!ranked.length){
+    status.textContent = "No submissions yet — be the first!";
+    status.style.display = "block";
+    table.style.display = "none";
+    return;
+  }
+  document.getElementById("lbBody").innerHTML = ranked.map((r,i)=>{
+    const rank = i+1;
+    const medal = rank<=3 ? " r"+rank : "";
+    return `<tr class="${rank<=3 ? "rank-"+rank : ""}">
+      <td><span class="lb-rank${medal}">${rank}</span></td>
+      <td class="lb-name">${esc(r.DisplayName || "—")}</td>
+      <td>${esc(r.Team || "—")}</td>
+      <td class="num">${r.dist.toFixed(2)}</td>
+      <td class="num">${Math.round(Number(r.SubmissionCount)||0)}</td>
+    </tr>`;
+  }).join("");
+  status.style.display = "none";
+  table.style.display = "";
 }
 
 /* ====================== SEASONS ====================== */
