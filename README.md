@@ -98,6 +98,21 @@ Leaderboards, awards, personal records, trends, and community ratings all need t
 
 The client and CSVs are structured for these; they're intentionally left as a TODO rather than stubbed with fake data.
 
+## Water quality data
+
+`data/water_quality.csv` holds recreational water quality readings (E. coli, total coliform, water temperature) for swim/paddle spots around Ottawa, for the `water` activity category. It's not hand-maintained — a scheduled workflow (`.github/workflows/update-water-quality.yml`, Thursdays) runs `scripts/fetch_water_quality.py`, which pulls two upstream sources and refetches/replaces the file wholesale each time (both sources already retain their own full history, so there's no local accumulation to drift):
+
+- **[Ottawa Riverkeeper](https://ottawa-riverkeeper-open-data-ork-so.hub.arcgis.com/datasets/afe7fde714bf460e88cf139483bf0d68)** — volunteer/partner sampling at ~28 sites (Mooney's Bay, Petrie Island, Remic Rapids, Constance Bay, Dow's Lake, etc.), 2019–present. `metric_type = single_sample`.
+- **[City of Ottawa / Ottawa Public Health](https://open.ottawa.ca/datasets/ottawa::beach-water-sampling)** — official weekly geometric-mean E. coli for the 5 supervised beaches (Britannia, Mooney's Bay, Westboro, Petrie East Bay, Petrie River), 2014–present. `metric_type = weekly_geomean`.
+
+Columns: `date, time, site, latitude, longitude, source, metric_type, parameter, value, unit, flag`. The Ontario recreational water standard is 200 E. coli cfu/100mL (`parameter = ecoli_cfu_100ml`) — that threshold is a display concern, not baked into the data.
+
+Not currently pulled in: Carleton's [Rideau River water quality testing](https://carleton.ca/ormeci/rideau-river-water-quality-testing/) publishes only as page text with no download or API, so it can't be automated the same way — it'd need manual weekly transcription if we want Rideau River coverage.
+
+To run the fetch locally: `pip install -r scripts/requirements.txt && python scripts/fetch_water_quality.py`.
+
+This data isn't wired into the UI yet — see the Not yet wired section above; water quality display is next.
+
 ## Repo layout
 
 ```
@@ -110,7 +125,12 @@ Commute-a-thlon/
 │   ├── awards.csv
 │   ├── leaderboard_metrics.csv
 │   ├── ratings.csv
-│   └── activity_aliases.csv
+│   ├── activity_aliases.csv
+│   └── water_quality.csv       # auto-updated, see "Water quality data" above
+├── scripts/
+│   └── fetch_water_quality.py  # source of data/water_quality.csv
+├── .github/workflows/
+│   └── update-water-quality.yml
 └── apps-script/
     └── Code.gs                 # doPost/doGet (deployed as a Web App)
 ```
