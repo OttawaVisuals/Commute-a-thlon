@@ -176,11 +176,23 @@ input:focus,select:focus,textarea:focus{border-color:var(--swim);background:#fff
 .wq-field.hide{display:none}
 .wq-pill{display:inline-flex;align-items:center;gap:5px;font-family:Inter,sans-serif;font-weight:700;
   font-size:11px;padding:3px 9px;border-radius:var(--radius-pill);text-transform:none;letter-spacing:0}
-.wq-pill .dot{width:7px;height:7px;border-radius:50%;flex:none}
+.wq-pill .dot{width:7px;height:7px;border-radius:50%;flex:none;background:currentColor}
 .wq-pill.good{background:#e5f6ea;color:#186b3a}
 .wq-pill.caution{background:#fdf1dc;color:#8a5a0a}
 .wq-pill.avoid{background:#fbe6e9;color:#9c2038}
 .wq-pill.unknown{background:var(--paper);color:var(--muted)}
+
+/* water quality map */
+#wqMap{height:420px;border:1.5px solid var(--line);border-radius:var(--radius);z-index:1}
+.wq-legend{display:flex;flex-wrap:wrap;gap:14px;margin:10px 0;font-size:12px;font-weight:600;color:var(--muted)}
+.wq-legend .lg{display:flex;align-items:center;gap:6px}
+.wq-legend .sw{width:11px;height:11px;border-radius:50%;flex:none;border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
+.wq-tooltip{font-family:Inter,sans-serif}
+.wq-tooltip .row{display:flex;justify-content:space-between;gap:14px;padding:2px 0;font-size:12px}
+.wq-tooltip .row .v{display:flex;align-items:center;gap:5px;font-family:"IBM Plex Mono",monospace}
+.wq-tooltip .row .v .dot{width:7px;height:7px;border-radius:50%;flex:none}
+.wq-tooltip .head{font-weight:700;font-family:"Space Grotesk",sans-serif;margin-bottom:3px}
+.wq-tooltip .sub{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:6px 0 2px}
 
 /* time hh:mm:ss group */
 .timegroup{display:flex;align-items:center;gap:3px}
@@ -405,18 +417,18 @@ table.exp tr:hover td{background:var(--paper)}
       <div class="explorer-tools">
         <input id="wqSearch" placeholder="Search sites…" />
       </div>
-      <div style="overflow-x:auto">
-        <table class="exp">
-          <thead><tr>
-            <th>Site</th><th>Status</th><th class="num">E. coli (cfu/100mL)</th><th>Sampled</th><th>Source</th>
-          </tr></thead>
-          <tbody id="wqBody"></tbody>
-        </table>
+      <div class="wq-legend">
+        <span class="lg"><span class="sw" style="background:var(--ok)"></span>Good ≤200 cfu/100mL</span>
+        <span class="lg"><span class="sw" style="background:var(--gold)"></span>Caution 200–400</span>
+        <span class="lg"><span class="sw" style="background:var(--danger)"></span>Avoid &gt;400</span>
+        <span class="lg"><span class="sw" style="background:var(--muted)"></span>No data</span>
       </div>
+      <div id="wqMap"></div>
       <div class="hint" style="margin-top:8px">
-        Worst readings first. <b>Good</b> ≤200 cfu/100mL (Ontario recreational water standard) · <b>Caution</b> 200–400 · <b>Avoid</b> &gt;400.
-        Weekly official readings from <a href="https://open.ottawa.ca/datasets/ottawa::beach-water-sampling" target="_blank" rel="noopener">Ottawa Public Health</a>
-        for the 5 supervised beaches; more frequent volunteer samples at other spots from <a href="https://ottawa-riverkeeper-open-data-ork-so.hub.arcgis.com/datasets/afe7fde714bf460e88cf139483bf0d68" target="_blank" rel="noopener">Ottawa Riverkeeper</a>.
+        Hover or tap a dot for that site's recent E. coli history. Weekly official readings from
+        <a href="https://open.ottawa.ca/datasets/ottawa::beach-water-sampling" target="_blank" rel="noopener">Ottawa Public Health</a>
+        for the 5 supervised beaches; more frequent volunteer samples at other spots from
+        <a href="https://ottawa-riverkeeper-open-data-ork-so.hub.arcgis.com/datasets/afe7fde714bf460e88cf139483bf0d68" target="_blank" rel="noopener">Ottawa Riverkeeper</a>.
         A reading is a snapshot, not a guarantee — conditions change fast after rain.
       </div>
     </div>
@@ -479,6 +491,7 @@ const state = {
 let rowSeq = 0;
 let map, activePen = "swim", mapInited = false;
 const penLayers = {}; // disc -> {latlngs, polyline, markers}
+let wqMap, wqMarkers = []; // water-quality panel's own Leaflet map + its current dots
 
 /* ====================== CSV ====================== */
 function parseCSV(text){
@@ -547,6 +560,7 @@ async function init(){
   addActivityRow();          // start with one row
   setFormat("olympic", true);
   renderExplorer();
+  initWqMap();
   renderWaterQuality();
   recompute();
 }
@@ -986,8 +1000,35 @@ function wqStatus(value){
   if(value<=400) return {cls:"caution", label:"Caution"};
   return {cls:"avoid", label:"Avoid"};
 }
-function wqSourceLabel(source){
-  return source === "City of Ottawa / Ottawa Public Health" ? "Official beach" : "Riverkeeper";
+function wqColor(cls){
+  return cls==="good" ? getCSS("--ok") : cls==="caution" ? getCSS("--gold") : cls==="avoid" ? getCSS("--danger") : getCSS("--muted");
+}
+// Compact recent-history list for a site's hover tooltip, newest first.
+function buildWqTooltipHTML(site){
+  const latest = state.wqBySite[site];
+  const latestSt = latest ? wqStatus(latest.value) : wqStatus(null);
+  const history = state.waterQuality
+    .filter(r => r.site===site && r.parameter==="ecoli_cfu_100ml" && (parseFloat(r.value)>=0))
+    .sort((a,b)=> b.date.localeCompare(a.date))
+    .slice(0, 8);
+  const rows = history.map(r=>{
+    const st = wqStatus(parseFloat(r.value));
+    return `<div class="row"><span>${esc(r.date)}</span>
+      <span class="v"><span class="dot" style="background:${wqColor(st.cls)}"></span>${Math.round(parseFloat(r.value))}</span></div>`;
+  }).join("") || `<div class="row" style="color:var(--muted)">No history</div>`;
+  return `<div class="wq-tooltip">
+    <div class="head">${esc(site)}</div>
+    <span class="wq-pill ${latestSt.cls}"><span class="dot"></span>${latestSt.label}${latest ? ` · ${Math.round(latest.value)} cfu/100mL` : ""}</span>
+    <div class="sub">Recent E. coli (cfu/100mL)</div>
+    ${rows}
+  </div>`;
+}
+function initWqMap(){
+  wqMap = L.map("wqMap", {scrollWheelZoom:false}).setView([45.4, -75.66], 10);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom:19, attribution:"© OpenStreetMap contributors"
+  }).addTo(wqMap);
+  setTimeout(()=>wqMap.invalidateSize(), 0);
 }
 function wireWaterQuality(){
   document.getElementById("wqSearch").addEventListener("input", renderWaterQuality);
@@ -995,22 +1036,26 @@ function wireWaterQuality(){
 function renderWaterQuality(){
   const entries = Object.values(state.wqBySite);
   const q = document.getElementById("wqSearch").value.toLowerCase();
-  const rows = entries
-    .filter(e => !q || e.site.toLowerCase().includes(q))
-    .sort((a,b)=> b.value - a.value); // worst readings first
-  document.getElementById("wqBody").innerHTML = rows.map(e=>{
+  const shown = entries.filter(e => !q || e.site.toLowerCase().includes(q));
+
+  wqMarkers.forEach(m=> wqMap.removeLayer(m));
+  wqMarkers = [];
+  shown.forEach(e=>{
+    if(!e.lat || !e.lon) return;
     const st = wqStatus(e.value);
-    return `<tr>
-      <td>${esc(e.site)}</td>
-      <td><span class="wq-pill ${st.cls}"><span class="dot"></span>${st.label}</span></td>
-      <td class="num">${Math.round(e.value).toLocaleString()}</td>
-      <td>${esc(e.date)}</td>
-      <td><span class="pill">${esc(wqSourceLabel(e.source))}</span></td>
-    </tr>`;
-  }).join("") || `<tr><td colspan="5" style="color:var(--muted)">No sites match.</td></tr>`;
+    const marker = L.circleMarker([+e.lat, +e.lon], {
+      radius:8, weight:2, color:"#fff", fillColor:wqColor(st.cls), fillOpacity:0.95,
+    }).addTo(wqMap);
+    marker.bindTooltip(buildWqTooltipHTML(e.site), {direction:"top", offset:[0,-8], sticky:true, opacity:1});
+    marker.on("click", ()=> marker.openTooltip());
+    wqMarkers.push(marker);
+  });
+  if(wqMarkers.length){
+    wqMap.fitBounds(L.featureGroup(wqMarkers).getBounds().pad(0.15));
+  }
 
   const latest = entries.reduce((max,e)=> e.date > max ? e.date : max, "");
-  setText("wq-updated-badge", entries.length ? `${entries.length} sites · as of ${latest}` : "no data");
+  setText("wq-updated-badge", entries.length ? `${shown.length}/${entries.length} sites · as of ${latest}` : "no data");
 }
 function nearestWqSiteOptions(){
   return Object.keys(state.wqBySite).sort((a,b)=> a.localeCompare(b));
