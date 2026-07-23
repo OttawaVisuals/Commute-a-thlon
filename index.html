@@ -15,55 +15,79 @@
 <style>
 :root{
   --ink:#14202b;      /* deep slate-navy, not pure black */
-  --paper:#f5f6f4;    /* cool off-white */
+  --paper:#fbf5e9;    /* warm cream — track-and-field, not lab-gray */
   --surface:#ffffff;
-  --line:#d7dcda;
-  --muted:#6b7a85;
-  --swim:#1f8fb0;     /* water */
-  --bike:#e4572e;     /* signal orange */
-  --run:#3c8c4e;      /* park green */
-  --ok:#3c8c4e;
+  --line:#e8dfc8;
+  --muted:#6b7263;
+  --swim:#0ea9cf;     /* electric water */
+  --bike:#ff5a1f;     /* signal orange, hotter */
+  --run:#22a854;      /* park green, brighter */
+  --gold:#e8ab1f;     /* fourth accent — awards/badges */
+  --ok:#22a854;
   --warn:#b4531f;
-  --radius:4px;
-  --shadow:0 1px 0 rgba(20,32,43,.04), 0 2px 8px rgba(20,32,43,.05);
+  --danger:#d1495b;
+  --radius:16px;
+  --radius-sm:10px;
+  --radius-pill:999px;
+  --shadow:0 2px 4px rgba(20,32,43,.05), 0 10px 24px rgba(20,32,43,.07);
+  --shadow-pop:0 8px 20px rgba(20,32,43,.14);
+  --grad-tri:linear-gradient(100deg, var(--swim), var(--bike) 52%, var(--run));
+  --grad-cta:linear-gradient(120deg, var(--bike), #ff8a3d);
   --content-w:1200px;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
 body{
-  background:var(--paper);
+  background:
+    radial-gradient(1100px 420px at 15% -8%, rgba(14,169,207,.10), transparent 60%),
+    radial-gradient(900px 380px at 100% 0%, rgba(34,168,84,.10), transparent 55%),
+    var(--paper);
   color:var(--ink);
   font-family:Inter,system-ui,sans-serif;
   font-size:15px;
   line-height:1.45;
   -webkit-font-smoothing:antialiased;
-  padding-bottom:74px; /* clearance for the fixed submit bar */
+  padding-bottom:82px; /* clearance for the fixed submit bar */
 }
-h1,h2,h3{font-family:"Space Grotesk",sans-serif;font-weight:600;letter-spacing:-0.01em;margin:0}
+h1,h2,h3{font-family:"Space Grotesk",sans-serif;font-weight:700;letter-spacing:-0.01em;margin:0}
 .mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
 a{color:var(--swim)}
 button{font-family:inherit}
-:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+:focus-visible{outline:2px solid var(--bike);outline-offset:2px}
 
 /* ---- masthead: mini mirror of the distance split ---- */
 header.mast{
-  background:var(--ink);color:var(--paper);
-  padding:14px 20px 16px;
+  position:relative;
+  background:linear-gradient(165deg,#0d1620,var(--ink) 55%,#0d1620);
+  color:var(--paper);
+  padding:16px 20px 18px;
+  overflow:hidden;
+  border-bottom:5px solid transparent;
+  border-image:var(--grad-tri) 1;
 }
-.mast-inner{max-width:var(--content-w);margin:0 auto}
-.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#9fb1bc}
-.mast h1{font-size:clamp(22px,3.4vw,32px);margin:2px 0 10px;color:#fff}
+.mast-inner{max-width:var(--content-w);margin:0 auto;position:relative}
+.eyebrow{
+  display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;
+  letter-spacing:.14em;text-transform:uppercase;color:#0d1620;
+  background:var(--grad-tri);padding:4px 11px;border-radius:var(--radius-pill);
+}
+.mast h1{font-size:clamp(24px,3.6vw,34px);margin:8px 0 10px;color:#fff;letter-spacing:-.02em}
 .line{display:flex;align-items:center;gap:10px;margin-top:2px}
-.ml-track{position:relative;flex:1;height:6px;background:#2b3a46;border-radius:3px;overflow:hidden}
+.ml-track{position:relative;flex:1;height:8px;background:#25313d;border-radius:var(--radius-pill);overflow:hidden}
 .seg-label{font-family:"IBM Plex Mono",monospace;font-size:11px;color:#9fb1bc;white-space:nowrap}
 
 /* ---- layout: single column, sized for a laptop screen ---- */
-main{max-width:var(--content-w);margin:0 auto;padding:16px 20px;display:grid;gap:14px}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
-.panel > .phead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line)}
-.phead .idx{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted)}
-.phead h2{font-size:16px}
-.pbody{padding:16px}
+main{max-width:var(--content-w);margin:0 auto;padding:18px 20px;display:grid;gap:16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);transition:box-shadow .15s ease}
+.panel > .phead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 18px;border-bottom:1px solid var(--line)}
+.phead .idx{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:26px;height:26px;border-radius:50%;
+  font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:700;
+  background:var(--pa, var(--bike));color:#fff;
+}
+.phead h2{font-size:17px}
+.pbody{padding:18px}
 
 /* two/four columns for form fields at this width, still a single-column page */
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -78,70 +102,85 @@ details.panel > summary::-webkit-details-marker{display:none}
 .summary-toggle{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);white-space:nowrap}
 
 /* ---- forms ---- */
-label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:0 0 4px}
+label{display:block;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:0 0 4px}
 input,select,textarea{
   width:100%;font-family:inherit;font-size:15px;color:var(--ink);
-  background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);
-  padding:8px 9px;
+  background:var(--paper);border:1.5px solid var(--line);border-radius:var(--radius-sm);
+  padding:8px 9px;transition:border-color .12s ease, box-shadow .12s ease;
 }
-input:focus,select:focus,textarea:focus{border-color:var(--ink);background:#fff}
+input:focus,select:focus,textarea:focus{border-color:var(--swim);background:#fff;box-shadow:0 0 0 3px rgba(14,169,207,.15)}
 .field{margin-bottom:9px}
 .field:last-child{margin-bottom:0}
 .hint{font-size:12px;color:var(--muted);margin-top:3px;font-weight:400;text-transform:none;letter-spacing:0}
 
 /* buttons */
-.btn{cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:#fff;
-  padding:8px 13px;border-radius:var(--radius);font-weight:600;font-size:14px}
-.btn:hover{background:#0c1720}
+.btn{cursor:pointer;border:1.5px solid var(--ink);background:var(--ink);color:#fff;
+  padding:9px 16px;border-radius:var(--radius-pill);font-weight:700;font-size:14px;
+  transition:transform .12s ease, box-shadow .12s ease, background .12s ease}
+.btn:hover{transform:translateY(-1px);box-shadow:var(--shadow-pop)}
+.btn:active{transform:translateY(0)}
 .btn.ghost{background:transparent;color:var(--ink)}
-.btn.ghost:hover{background:var(--paper)}
-.btn.sm{padding:5px 9px;font-size:13px}
-.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost:hover{background:#fff}
+.btn.sm{padding:6px 12px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
 .btn-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+#addActivity{background:var(--grad-cta);border-color:transparent}
+#submitBtn{background:var(--grad-cta);border-color:transparent;color:#fff}
 
 /* format toggle */
-.seg-toggle{display:inline-flex;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
-.seg-toggle button{background:#fff;border:0;padding:7px 13px;cursor:pointer;font-weight:600;font-size:14px;color:var(--muted)}
-.seg-toggle button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.seg-toggle{display:inline-flex;border:1.5px solid var(--line);border-radius:var(--radius-pill);overflow:hidden;background:#fff}
+.seg-toggle button{background:transparent;border:0;padding:8px 16px;cursor:pointer;font-weight:700;font-size:14px;color:var(--muted);transition:background .12s ease,color .12s ease}
+.seg-toggle button[aria-pressed="true"]{background:var(--grad-tri);color:#fff}
 
 /* ---- horizontal stacked bars (all three reuse this) ---- */
 .stackbar-block{margin-top:16px}
 .stackbar-block:first-of-type{margin-top:14px}
 .stackbar-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
-.stackbar-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
-.stackbar-val{font-family:"IBM Plex Mono",monospace;font-size:13px}
-.stackbar-track{position:relative;height:26px;background:var(--paper);border:1px solid var(--line);border-radius:3px;overflow:hidden}
-.stackseg{position:absolute;top:0;bottom:0;border-right:1px solid rgba(255,255,255,.55)}
+.stackbar-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.stackbar-val{font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:600}
+.stackbar-track{position:relative;height:28px;background:var(--paper);border:1.5px solid var(--line);border-radius:var(--radius-pill);overflow:hidden}
+.stackseg{position:absolute;top:0;bottom:0;border-right:1px solid rgba(255,255,255,.55);
+  background-image:linear-gradient(rgba(255,255,255,.28), rgba(255,255,255,0) 55%)}
 .stackbar-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font-size:12px}
-.stackbar-legend .lg{display:flex;align-items:center;gap:5px;color:var(--muted)}
-.stackbar-legend .sw{width:9px;height:9px;border-radius:2px;flex:none}
+.stackbar-legend .lg{display:flex;align-items:center;gap:5px;color:var(--muted);font-weight:600}
+.stackbar-legend .sw{width:9px;height:9px;border-radius:50%;flex:none}
 
 /* map */
-#map{height:300px;border:1px solid var(--line);border-radius:var(--radius);z-index:1}
+#map{height:300px;border:1.5px solid var(--line);border-radius:var(--radius);z-index:1}
 .map-tools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;align-items:center}
-.pen{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;
-  padding:5px 10px;border-radius:20px;cursor:pointer;font-weight:600;font-size:13px}
+.pen{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--line);background:#fff;
+  padding:6px 12px;border-radius:var(--radius-pill);cursor:pointer;font-weight:700;font-size:13px;transition:box-shadow .12s ease}
 .pen .dot{width:10px;height:10px;border-radius:50%}
-.pen[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.pen[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink)}
 .pen.swim .dot{background:var(--swim)} .pen.bike .dot{background:var(--bike)} .pen.run .dot{background:var(--run)}
 .map-readout{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;font-family:"IBM Plex Mono",monospace;font-size:13px}
-.map-readout b{font-weight:600}
+.map-readout b{font-weight:700}
 
 /* activity rows — made more evident */
 .arow{position:relative;display:grid;grid-template-columns:1fr 1.2fr .8fr 1.3fr auto;gap:10px;align-items:end;
-  padding:12px 16px 10px;border:1px solid var(--line);border-left:4px solid var(--ink);border-radius:6px;
-  margin-bottom:10px;background:#fff;box-shadow:var(--shadow)}
+  padding:14px 18px 12px;border:1.5px solid var(--line);border-left:5px solid var(--bike);border-radius:var(--radius-sm);
+  margin-bottom:10px;background:#fff;box-shadow:var(--shadow);transition:box-shadow .12s ease,border-color .12s ease}
+.arow:hover{box-shadow:var(--shadow-pop)}
 .arow label{margin-bottom:3px}
 .arow-head{grid-column:1/-1;font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:700;
   text-transform:uppercase;letter-spacing:.06em;color:var(--ink);padding-bottom:6px;margin-bottom:6px;
   border-bottom:1px dashed var(--line)}
 @media(max-width:820px){.arow{grid-template-columns:1fr 1fr}}
-.arow .del{border:1px solid var(--line);background:#fff;color:var(--warn);border-radius:var(--radius);
-  cursor:pointer;padding:8px 10px;font-weight:700;line-height:1;height:37px}
-.arow .del:hover{background:#fff0eb}
+.arow .del{border:1.5px solid var(--line);background:#fff;color:var(--danger);border-radius:var(--radius-pill);
+  cursor:pointer;padding:8px 10px;font-weight:700;line-height:1;height:38px}
+.arow .del:hover{background:#fff0eb;border-color:var(--danger)}
 .rowmeta{grid-column:1/-1;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted);
   display:flex;gap:12px;flex-wrap:wrap;padding-top:2px}
 .rowmeta.hide{display:none}
+.wq-field{grid-column:1/-1}
+.wq-field.hide{display:none}
+.wq-pill{display:inline-flex;align-items:center;gap:5px;font-family:Inter,sans-serif;font-weight:700;
+  font-size:11px;padding:3px 9px;border-radius:var(--radius-pill);text-transform:none;letter-spacing:0}
+.wq-pill .dot{width:7px;height:7px;border-radius:50%;flex:none}
+.wq-pill.good{background:#e5f6ea;color:#186b3a}
+.wq-pill.caution{background:#fdf1dc;color:#8a5a0a}
+.wq-pill.avoid{background:#fbe6e9;color:#9c2038}
+.wq-pill.unknown{background:var(--paper);color:var(--muted)}
 
 /* time hh:mm:ss group */
 .timegroup{display:flex;align-items:center;gap:3px}
@@ -150,43 +189,47 @@ input:focus,select:focus,textarea:focus{border-color:var(--ink);background:#fff}
 .tnote{text-transform:none;font-weight:400;color:var(--muted);letter-spacing:0;font-size:11px}
 
 /* instrument panel (metrics) */
-.instr{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.instr{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1.5px solid var(--line);border-radius:var(--radius);overflow:hidden}
 @media(max-width:820px){.instr{grid-template-columns:1fr 1fr}}
-.cell{background:var(--surface);padding:10px 12px}
-.cell .k{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.cell .v{font-family:"IBM Plex Mono",monospace;font-size:20px;font-weight:600;margin-top:2px}
+.cell{background:var(--surface);padding:12px 14px;transition:background .2s ease}
+.cell .k{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.cell .v{font-family:"IBM Plex Mono",monospace;font-size:20px;font-weight:700;margin-top:2px}
 .cell.wide{grid-column:1/-1}
 .cell .v small{font-size:13px;color:var(--muted);font-weight:400}
-.completion .v{font-size:26px}
+.completion .v{font-size:28px}
+.completion.low .v{color:var(--danger)}
+.completion.mid .v{color:var(--gold)}
+.completion.over{background:#eaf8ee}
 .completion.over .v{color:var(--ok)}
 
 /* freestyle explorer */
 .explorer-tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .explorer-tools input,.explorer-tools select{width:auto;min-width:140px;flex:1}
 table.exp{width:100%;border-collapse:collapse;font-size:13px}
-table.exp th,table.exp td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
-table.exp th{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+table.exp th,table.exp td{text-align:left;padding:8px 8px;border-bottom:1px solid var(--line)}
+table.exp th{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700}
 table.exp td.num{font-family:"IBM Plex Mono",monospace;text-align:right}
-.pill{display:inline-block;font-size:11px;padding:2px 7px;border-radius:20px;background:var(--paper);border:1px solid var(--line);color:var(--muted)}
+table.exp tr:hover td{background:var(--paper)}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:3px 9px;border-radius:var(--radius-pill);background:var(--paper);border:1px solid var(--line);color:var(--muted)}
+.count-pill{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:700;color:var(--muted);background:var(--paper);border:1px solid var(--line);padding:4px 11px;border-radius:var(--radius-pill)}
 
 /* fixed submit bar */
-.submitbar{position:fixed;left:0;right:0;bottom:0;background:var(--ink);color:#fff;
-  padding:8px 20px;z-index:100;box-shadow:0 -2px 10px rgba(20,32,43,.18)}
+.submitbar{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(100deg,#0d1620,var(--ink) 60%);color:#fff;
+  padding:10px 20px;z-index:100;box-shadow:0 -4px 16px rgba(20,32,43,.22);border-top:3px solid transparent;border-image:var(--grad-tri) 1}
 .submitbar-inner{max-width:var(--content-w);margin:0 auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .submitbar .stat{font-family:"IBM Plex Mono",monospace;font-size:12px;color:#cfd8dc;white-space:nowrap}
 .submitbar .stat b{color:#fff}
-.submitbar .btn{background:#fff;color:var(--ink);border-color:#fff;margin-left:auto}
-.submitbar .btn:hover{background:#e8ebe9}
-.submitbar .status{margin:0;padding:5px 9px;font-size:12px;border-radius:var(--radius);display:none;flex-basis:100%}
+.submitbar .btn{background:var(--grad-cta);color:#fff;border-color:transparent;margin-left:auto}
+.submitbar .status{margin:0;padding:5px 9px;font-size:12px;border-radius:var(--radius-sm);display:none;flex-basis:100%}
 .submitbar .status.show{display:block}
-.submitbar .status.ok{background:rgba(60,140,78,.3);border:1px solid transparent;color:#dff3e2}
+.submitbar .status.ok{background:rgba(34,168,84,.3);border:1px solid transparent;color:#dff3e2}
 .submitbar .status.err{background:rgba(180,83,31,.3);border:1px solid transparent;color:#fbe4d8}
 .submitbar .status.work{background:rgba(255,255,255,.15);border:1px solid transparent;color:#fff}
 
 .foot{max-width:var(--content-w);margin:0 auto;padding:16px 20px 24px;color:var(--muted);font-size:13px}
-.todo{background:#fff;border:1px dashed var(--line);border-radius:var(--radius);padding:10px 12px;margin-top:10px;font-size:13px;color:var(--muted)}
+.todo{background:#fff;border:1.5px dashed var(--line);border-radius:var(--radius-sm);padding:10px 12px;margin-top:10px;font-size:13px;color:var(--muted)}
 .todo b{color:var(--ink)}
-.loaderr{background:#fbeee8;border:1px solid #f0c7b8;color:#8a3311;padding:10px 12px;border-radius:var(--radius);margin:12px 0}
+.loaderr{background:#fbeee8;border:1px solid #f0c7b8;color:#8a3311;padding:10px 12px;border-radius:var(--radius-sm);margin:12px 0}
 </style>
 </head>
 <body>
@@ -208,7 +251,7 @@ table.exp td.num{font-family:"IBM Plex Mono",monospace;text-align:right}
 
   <!-- 1 · TARGET -->
   <section class="panel">
-    <div class="phead"><span class="idx">01</span><h2>Set your target</h2></div>
+    <div class="phead" style="--pa:var(--swim)"><span class="idx">01</span><h2>Set your target</h2></div>
     <div class="pbody">
       <div class="grid4">
         <div class="field"><label for="displayName">Display name</label><input id="displayName" placeholder="e.g. J. Tremblay" autocomplete="name" /></div>
@@ -257,7 +300,7 @@ table.exp td.num{font-family:"IBM Plex Mono",monospace;text-align:right}
 
   <!-- 2 · ACTIVITIES -->
   <section class="panel">
-    <div class="phead"><span class="idx">02</span><h2>Log your activities</h2><span class="idx" id="activity-count-badge">0 logged</span></div>
+    <div class="phead" style="--pa:var(--bike)"><span class="idx">02</span><h2>Log your activities</h2><span class="count-pill" id="activity-count-badge">0 logged</span></div>
     <div class="pbody">
       <div id="activityRows"></div>
       <div class="btn-row" style="margin-top:4px">
@@ -280,7 +323,7 @@ table.exp td.num{font-family:"IBM Plex Mono",monospace;text-align:right}
 
   <!-- 3 · ROUTE (optional / collapsible) -->
   <details class="panel" id="routeDetails">
-    <summary class="phead">
+    <summary class="phead" style="--pa:var(--run)">
       <span style="display:flex;align-items:baseline;gap:10px"><span class="idx">03</span><h2>Sketch your route <span class="hint" style="display:inline;text-transform:none">(optional)</span></h2></span>
       <span class="summary-toggle" id="routeToggleIcon">+ show</span>
     </summary>
@@ -308,7 +351,7 @@ table.exp td.num{font-family:"IBM Plex Mono",monospace;text-align:right}
 
   <!-- 4 · METRICS -->
   <section class="panel">
-    <div class="phead"><span class="idx">04</span><h2>Live metrics</h2></div>
+    <div class="phead" style="--pa:var(--gold)"><span class="idx">04</span><h2>Live metrics</h2></div>
     <div class="pbody">
       <div class="instr">
         <div class="cell completion wide" id="cell-completion">
@@ -333,7 +376,7 @@ table.exp td.num{font-family:"IBM Plex Mono",monospace;text-align:right}
 
   <!-- 5 · FREESTYLE / MET EXPLORER -->
   <section class="panel">
-    <div class="phead"><span class="idx">05</span><h2>Freestyle · MET explorer</h2></div>
+    <div class="phead" style="--pa:var(--bike)"><span class="idx">05</span><h2>Freestyle · MET explorer</h2></div>
     <div class="pbody">
       <div class="explorer-tools">
         <input id="expSearch" placeholder="Search activities…" />
@@ -352,6 +395,30 @@ table.exp td.num{font-family:"IBM Plex Mono",monospace;text-align:right}
         </table>
       </div>
       <div class="hint" style="margin-top:8px">MET·min = MET × minutes, using the value in the Minutes box. Data-driven from <span class="mono">data/activities.csv</span>.</div>
+    </div>
+  </section>
+
+  <!-- 6 · WATER QUALITY -->
+  <section class="panel">
+    <div class="phead" style="--pa:var(--swim)"><span class="idx">06</span><h2>Water quality</h2><span class="count-pill" id="wq-updated-badge">—</span></div>
+    <div class="pbody">
+      <div class="explorer-tools">
+        <input id="wqSearch" placeholder="Search sites…" />
+      </div>
+      <div style="overflow-x:auto">
+        <table class="exp">
+          <thead><tr>
+            <th>Site</th><th>Status</th><th class="num">E. coli (cfu/100mL)</th><th>Sampled</th><th>Source</th>
+          </tr></thead>
+          <tbody id="wqBody"></tbody>
+        </table>
+      </div>
+      <div class="hint" style="margin-top:8px">
+        Worst readings first. <b>Good</b> ≤200 cfu/100mL (Ontario recreational water standard) · <b>Caution</b> 200–400 · <b>Avoid</b> &gt;400.
+        Weekly official readings from <a href="https://open.ottawa.ca/datasets/ottawa::beach-water-sampling" target="_blank" rel="noopener">Ottawa Public Health</a>
+        for the 5 supervised beaches; more frequent volunteer samples at other spots from <a href="https://ottawa-riverkeeper-open-data-ork-so.hub.arcgis.com/datasets/afe7fde714bf460e88cf139483bf0d68" target="_blank" rel="noopener">Ottawa Riverkeeper</a>.
+        A reading is a snapshot, not a guarantee — conditions change fast after rain.
+      </div>
     </div>
   </section>
 
@@ -403,6 +470,8 @@ const state = {
   categories: [],          // from categories.csv
   seasons: [],             // from seasons.csv
   byId: {},                // activity_id -> activity
+  waterQuality: [],        // from water_quality.csv, raw rows
+  wqBySite: {},            // site -> latest E. coli reading
   format: "olympic",
   rows: [],                // user activity entries
   drawn: { swim:0, bike:0, run:0 },
@@ -445,15 +514,18 @@ async function loadCSV(path){
 /* ====================== INIT ====================== */
 async function init(){
   try{
-    const [acts, cats, seasons] = await Promise.all([
+    const [acts, cats, seasons, wq] = await Promise.all([
       loadCSV("./data/activities.csv"),
       loadCSV("./data/categories.csv"),
       loadCSV("./data/seasons.csv"),
+      loadCSV("./data/water_quality.csv"),
     ]);
     state.activities = acts.filter(a => (a.status||"active") === "active");
     state.categories = cats.sort((a,b)=> (+a.sort_order||99) - (+b.sort_order||99));
     state.seasons = seasons;
     state.byId = Object.fromEntries(state.activities.map(a => [a.activity_id, a]));
+    state.waterQuality = wq;
+    state.wqBySite = buildWaterQualityIndex(wq);
   }catch(err){
     const box = document.getElementById("load-error");
     box.style.display = "block";
@@ -468,12 +540,14 @@ async function init(){
   wireTargetInputs();
   wireActivityControls();
   wireExplorer();
+  wireWaterQuality();
   wireSubmit();
   wireRouteDetails();
 
   addActivityRow();          // start with one row
   setFormat("olympic", true);
   renderExplorer();
+  renderWaterQuality();
   recompute();
 }
 
@@ -691,13 +765,25 @@ function addActivityRow(){
       </div>
     </div>
     <button type="button" class="del" title="Delete activity" aria-label="Delete activity">✕</button>
+    <div class="wq-field hide" data-role="wqField" style="margin-top:2px">
+      <label style="margin-bottom:5px">Water quality — nearest site (optional)</label>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select data-role="wqSite" style="max-width:260px">
+          <option value="">— choose a site —</option>
+          ${nearestWqSiteOptions().map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join("")}
+        </select>
+        <span data-role="wqStatusPill"></span>
+      </div>
+    </div>
     <div class="rowmeta hide" data-role="meta"></div>`;
   document.getElementById("activityRows").appendChild(wrap);
 
   const catSel = wrap.querySelector('[data-role="cat"]');
   const actSel = wrap.querySelector('[data-role="act"]');
+  const wqSel = wrap.querySelector('[data-role="wqSite"]');
   catSel.addEventListener("change", ()=>{ fillActivities(catSel.value, actSel); onRowActivityChange(wrap); });
   actSel.addEventListener("change", ()=> onRowActivityChange(wrap));
+  wqSel.addEventListener("change", ()=> updateWqFieldStatus(wrap));
   wrap.querySelector('[data-role="primary"]').addEventListener("input", recompute);
   ["hh","mm","ss"].forEach(role=>
     wrap.querySelector(`[data-role="${role}"]`).addEventListener("input", recompute));
@@ -726,7 +812,7 @@ function onRowActivityChange(wrap){
   const primary = wrap.querySelector('[data-role="primary"]');
   const primaryWrap = wrap.querySelector('[data-role="primary-wrap"]');
   const timeNote = wrap.querySelector('[data-role="time-note"]');
-  if(!a){ recompute(); return; }
+  if(!a){ wrap.querySelector('[data-role="wqField"]').classList.add("hide"); recompute(); return; }
   if(a.unit === "storeys"){
     label.textContent = "Storeys"; primary.placeholder="0"; primaryWrap.style.visibility="visible";
     timeNote.textContent = "";
@@ -737,7 +823,18 @@ function onRowActivityChange(wrap){
     label.textContent = "Distance (km)"; primary.placeholder="0"; primaryWrap.style.visibility="visible";
     timeNote.textContent = " · auto from speed if blank";
   }
+  const wqField = wrap.querySelector('[data-role="wqField"]');
+  wqField.classList.toggle("hide", a.category !== "water");
+  if(a.category === "water") updateWqFieldStatus(wrap);
   recompute();
+}
+function updateWqFieldStatus(wrap){
+  const site = wrap.querySelector('[data-role="wqSite"]').value;
+  const pillEl = wrap.querySelector('[data-role="wqStatusPill"]');
+  const entry = state.wqBySite[site];
+  if(!entry){ pillEl.innerHTML = ""; return; }
+  const st = wqStatus(entry.value);
+  pillEl.innerHTML = `<span class="wq-pill ${st.cls}"><span class="dot"></span>${st.label} · ${Math.round(entry.value)} cfu/100mL · ${esc(entry.date)}</span>`;
 }
 
 /* ====================== COMPUTE ====================== */
@@ -804,10 +901,12 @@ function recompute(){
   setText("m-fun", funAvg==null ? "—" : funAvg.toFixed(1));
   setText("m-orig", origAvg==null ? "—" : origAvg.toFixed(1));
   const compCell = document.getElementById("cell-completion");
-  if(completion==null){ setText("m-completion","—"); compCell.classList.remove("over"); }
+  if(completion==null){ setText("m-completion","—"); compCell.classList.remove("over","mid","low"); }
   else{
     setText("m-completion", completion.toFixed(0) + "%");
     compCell.classList.toggle("over", completion>=100);
+    compCell.classList.toggle("mid", completion>=40 && completion<100);
+    compCell.classList.toggle("low", completion<40);
   }
   setText("activity-count-badge", count + " logged");
 
@@ -860,6 +959,61 @@ function renderExplorer(){
       <td class="num">${a.originality_factor}</td>
       <td class="num">${Math.round((parseFloat(a.met)||0)*mins).toLocaleString()}</td>
     </tr>`).join("") || `<tr><td colspan="7" style="color:var(--muted)">No activities match.</td></tr>`;
+}
+
+/* ====================== WATER QUALITY ====================== */
+// Reduces raw water_quality.csv rows (one row per sample per parameter) down
+// to the latest E. coli reading per site. Dates are ISO (YYYY-MM-DD), so a
+// plain string comparison is enough to find the most recent one.
+function buildWaterQualityIndex(rows){
+  const bySite = {};
+  rows.forEach(r=>{
+    if(r.parameter !== "ecoli_cfu_100ml") return;
+    const value = parseFloat(r.value);
+    if(!(value>=0)) return;
+    const cur = bySite[r.site];
+    if(!cur || r.date > cur.date){
+      bySite[r.site] = { site:r.site, date:r.date, value, source:r.source, lat:r.latitude, lon:r.longitude };
+    }
+  });
+  return bySite;
+}
+// Ontario recreational water guideline: <=200 cfu/100mL meets the standard;
+// the City resamples a beach when its weekly geometric mean exceeds 400.
+function wqStatus(value){
+  if(value==null || isNaN(value)) return {cls:"unknown", label:"No data"};
+  if(value<=200) return {cls:"good", label:"Good"};
+  if(value<=400) return {cls:"caution", label:"Caution"};
+  return {cls:"avoid", label:"Avoid"};
+}
+function wqSourceLabel(source){
+  return source === "City of Ottawa / Ottawa Public Health" ? "Official beach" : "Riverkeeper";
+}
+function wireWaterQuality(){
+  document.getElementById("wqSearch").addEventListener("input", renderWaterQuality);
+}
+function renderWaterQuality(){
+  const entries = Object.values(state.wqBySite);
+  const q = document.getElementById("wqSearch").value.toLowerCase();
+  const rows = entries
+    .filter(e => !q || e.site.toLowerCase().includes(q))
+    .sort((a,b)=> b.value - a.value); // worst readings first
+  document.getElementById("wqBody").innerHTML = rows.map(e=>{
+    const st = wqStatus(e.value);
+    return `<tr>
+      <td>${esc(e.site)}</td>
+      <td><span class="wq-pill ${st.cls}"><span class="dot"></span>${st.label}</span></td>
+      <td class="num">${Math.round(e.value).toLocaleString()}</td>
+      <td>${esc(e.date)}</td>
+      <td><span class="pill">${esc(wqSourceLabel(e.source))}</span></td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="5" style="color:var(--muted)">No sites match.</td></tr>`;
+
+  const latest = entries.reduce((max,e)=> e.date > max ? e.date : max, "");
+  setText("wq-updated-badge", entries.length ? `${entries.length} sites · as of ${latest}` : "no data");
+}
+function nearestWqSiteOptions(){
+  return Object.keys(state.wqBySite).sort((a,b)=> a.localeCompare(b));
 }
 
 /* ====================== SEASONS ====================== */
