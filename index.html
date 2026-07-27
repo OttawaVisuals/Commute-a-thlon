@@ -4,6 +4,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Commute-a-thlon</title>
+<link rel="icon" type="image/svg+xml" href="commute-a-thlon-icon.svg" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -65,16 +67,16 @@ header.mast{
   border-bottom:5px solid transparent;
   border-image:var(--grad-tri) 1;
 }
-.mast-inner{max-width:var(--content-w);margin:0 auto;position:relative}
-.eyebrow{
-  display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;
-  letter-spacing:.14em;text-transform:uppercase;color:#0d1620;
-  background:var(--grad-tri);padding:3px 10px;border-radius:var(--radius-pill);
+.mast-inner{max-width:var(--content-w);margin:0 auto;position:relative;display:flex;align-items:center;gap:16px}
+.mast-copy{flex:1;min-width:0}
+.mast-logo{
+  flex:0 0 auto;height:46px;width:auto;
 }
-.mast h1{font-size:clamp(20px,3.2vw,28px);margin:6px 0 7px;color:#fff;letter-spacing:-.02em}
+@media (max-width:640px){ .mast-logo{height:38px} }
+.mast h1{font-size:clamp(20px,3.2vw,28px);margin:0 0 2px;color:#fff;letter-spacing:-.02em}
+.mast-sub{margin:0 0 7px;font-size:13px;color:#9fb1bc;font-weight:500}
 .line{display:flex;align-items:center;gap:10px;margin-top:2px}
 .ml-track{position:relative;flex:1;height:8px;background:#25313d;border-radius:var(--radius-pill);overflow:hidden}
-.seg-label{font-family:"IBM Plex Mono",monospace;font-size:11px;color:#9fb1bc;white-space:nowrap}
 
 /* ---- layout: single column, sized for a laptop screen ---- */
 main{max-width:var(--content-w);margin:0 auto;padding:12px 20px;display:grid;gap:10px}
@@ -133,13 +135,12 @@ input:focus,select:focus,textarea:focus{border-color:var(--swim);background:#fff
 /* format toggle */
 .seg-toggle{display:inline-flex;border:1.5px solid var(--line);border-radius:var(--radius-pill);overflow:hidden;background:#fff}
 .seg-toggle button{background:transparent;border:0;padding:6px 14px;cursor:pointer;font-weight:700;font-size:14px;color:var(--muted);transition:background .12s ease,color .12s ease}
-.seg-toggle button[aria-pressed="true"]{background:var(--grad-tri);color:#fff}
+.seg-toggle button[aria-pressed="true"]{background:var(--bike);color:#fff}
 
 /* vertical section index (compact panel headers) */
 .panel-side{display:flex;align-items:stretch}
 .panel-side > .pbody{flex:1;min-width:0}
-.phead-vert,
-details.panel[open] > summary.phead .phead-open{
+.phead-vert{
   flex:none;display:flex;align-items:center;justify-content:center;
   padding:10px 7px;background:var(--pa, var(--bike));color:#fff;
   border-radius:15px 0 0 15px;
@@ -150,19 +151,32 @@ details.panel[open] > summary.phead .phead-open{
   letter-spacing:.06em;text-transform:uppercase;
 }
 @media(max-width:560px){
-  .panel-side,details.panel[open]{flex-direction:column}
-  .phead-vert,details.panel[open] > summary.phead .phead-open{padding:7px 14px;border-radius:15px 15px 0 0}
-  .vert-label{writing-mode:horizontal-tb;transform:none}
+  .panel-side{flex-direction:column}
+  details.panel[open]{padding-left:0}
+  details.panel[open] > summary.phead{position:static;width:auto}
+  .phead-vert,details.panel[open] > summary.phead{padding:7px 14px;border-radius:15px 15px 0 0;flex-direction:row}
+  .vert-label,details.panel[open] > summary.phead .summary-toggle{writing-mode:horizontal-tb;transform:none}
 }
 
 /* collapsible panels: normal horizontal header while closed, vertical strip
    (matching the static panels above) once expanded */
-details.panel[open]{display:flex;align-items:stretch}
-details.panel[open] > .pbody{flex:1;min-width:0}
-details.panel[open] > summary.phead{flex:none;padding:0;border-bottom:none;background:none}
-details.panel[open] > summary.phead .phead-closed,
-details.panel[open] > summary.phead .summary-toggle{display:none}
-details.panel[open] > summary.phead .phead-open{display:flex}
+/* The colour strip is the summary itself, absolutely positioned so it spans the
+   panel's full height, and it stacks the "hide" affordance under the vertical
+   section label. Absolute rather than flex on <details>: flexing the details
+   element leaves the body sized to its content instead of the panel width. */
+details.panel[open]{display:block;position:relative;padding-left:34px}
+details.panel[open] > .pbody{width:100%}
+details.panel[open] > summary.phead{
+  position:absolute;left:0;top:0;bottom:0;width:34px;
+  border-bottom:none;padding:10px 7px;
+  background:var(--pa, var(--bike));color:#fff;border-radius:15px 0 0 15px;
+  display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:12px;
+}
+details.panel[open] > summary.phead .phead-closed{display:none}
+details.panel[open] > summary.phead .phead-open{display:flex;align-items:center}
+details.panel[open] > summary.phead .summary-toggle{
+  display:block;color:rgba(255,255,255,.9);writing-mode:vertical-rl;transform:rotate(180deg);
+}
 
 /* inline "?" info button — replaces long-form hints under stackbars */
 .info-btn{
@@ -186,18 +200,25 @@ details.panel[open] > summary.phead .phead-open{display:flex}
 /* ---- horizontal stacked bars (all three reuse this) ---- */
 .stackbar-block{margin-top:10px}
 .stackbar-block:first-of-type{margin-top:8px}
-.stackbar-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px}
+.stackbar-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:3px}
 .stackbar-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
-.stackbar-val{font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:600}
-.stackbar-track{position:relative;height:22px;background:var(--paper);border:1.5px solid var(--line);border-radius:var(--radius-pill);overflow:hidden}
+.stackbar-val{font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:600;margin-left:auto;white-space:nowrap}
+.stackbar-track{position:relative;height:26px;background:var(--paper);border:1.5px solid var(--line);border-radius:var(--radius-pill);overflow:hidden}
 .stackseg{position:absolute;top:0;bottom:0;border-right:1px solid rgba(255,255,255,.55);
-  background-image:linear-gradient(rgba(255,255,255,.28), rgba(255,255,255,0) 55%)}
-.stackbar-legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:5px;font-size:12px}
-.stackbar-legend .lg{display:flex;align-items:center;gap:5px;color:var(--muted);font-weight:600}
+  background-image:linear-gradient(rgba(255,255,255,.28), rgba(255,255,255,0) 55%);
+  display:flex;align-items:center;justify-content:center;overflow:hidden}
+/* discipline glyph, painted white via mask so the segment colour shows through nowhere */
+.seg-icon{width:17px;height:17px;flex:none;background:#fff;opacity:.92;
+  -webkit-mask:var(--glyph) center/contain no-repeat;mask:var(--glyph) center/contain no-repeat}
+.stackbar-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px}
+.stackbar-legend.below{margin-top:5px}
+.stackbar-legend.inline{flex:none;gap:4px 10px;font-size:11px}
+.stackbar-legend .lg{display:flex;align-items:center;gap:5px;color:var(--muted);font-weight:600;white-space:nowrap}
 .stackbar-legend .sw{width:9px;height:9px;border-radius:50%;flex:none}
+@media(max-width:700px){.stackbar-head{flex-wrap:wrap}.stackbar-legend.inline{order:3;width:100%}}
 
-/* map */
-#map{height:300px;border:1.5px solid var(--line);border-radius:var(--radius);z-index:1}
+/* map — fills the content column, height = width × 0.8 */
+#map{width:100%;height:auto;aspect-ratio:1/0.8;border:1.5px solid var(--line);border-radius:var(--radius);z-index:1}
 .map-tools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;align-items:center}
 .pen{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--line);background:#fff;
   padding:6px 12px;border-radius:var(--radius-pill);cursor:pointer;font-weight:700;font-size:13px;transition:box-shadow .12s ease}
@@ -208,15 +229,23 @@ details.panel[open] > summary.phead .phead-open{display:flex}
 .map-readout b{font-weight:700}
 
 /* activity rows — made more evident */
-.arow{position:relative;display:grid;grid-template-columns:1fr 1.2fr .8fr 1.3fr auto;gap:9px;align-items:end;
-  padding:10px 14px 9px;border:1.5px solid var(--line);border-left:5px solid var(--bike);border-radius:var(--radius-sm);
+/* activity title runs down the left edge, mirroring the panel headers */
+.arow{position:relative;display:flex;align-items:stretch;
+  border:1.5px solid var(--line);border-radius:var(--radius-sm);overflow:hidden;
   margin-bottom:8px;background:#fff;box-shadow:var(--shadow);transition:box-shadow .12s ease,border-color .12s ease}
 .arow:hover{box-shadow:var(--shadow-pop)}
 .arow label{margin-bottom:3px}
-.arow-head{grid-column:1/-1;font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:700;
-  text-transform:uppercase;letter-spacing:.06em;color:var(--ink);padding-bottom:4px;margin-bottom:4px;
-  border-bottom:1px dashed var(--line)}
-@media(max-width:820px){.arow{grid-template-columns:1fr 1fr}}
+.arow-head{flex:none;display:flex;align-items:center;justify-content:center;padding:8px 5px;
+  background:var(--bike);color:#fff;font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.06em;
+  writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap}
+.arow-body{flex:1;min-width:0;display:grid;grid-template-columns:1fr 1.2fr .8fr 1.3fr auto;gap:9px;
+  align-items:end;padding:10px 14px 9px}
+@media(max-width:820px){.arow-body{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){
+  .arow{flex-direction:column}
+  .arow-head{writing-mode:horizontal-tb;transform:none;padding:5px 12px;justify-content:flex-start}
+}
 .arow .del{border:1.5px solid var(--line);background:#fff;color:var(--danger);border-radius:var(--radius-pill);
   cursor:pointer;padding:8px 10px;font-weight:700;line-height:1;height:38px}
 .arow .del:hover{background:#fff0eb;border-color:var(--danger)}
@@ -308,11 +337,14 @@ table.lb tr.rank-3{background:#fbf0e6}
 
 <header class="mast">
   <div class="mast-inner">
-    <div class="eyebrow">OttawaVisuals · active commute challenge</div>
-    <h1>Commute-a-thlon</h1>
-    <div class="line" aria-hidden="true">
-      <div class="ml-track" id="ml-track"></div>
-      <span class="seg-label">COMMUTE SPLIT</span>
+    <img class="mast-logo" src="commute-a-thlon-icon.svg"
+         alt="Commute-a-thlon: swim, bike, run icons" />
+    <div class="mast-copy">
+      <h1>Commute-a-thlon</h1>
+      <p class="mast-sub">Transform your usual commute into a triathlon contest</p>
+      <div class="line" aria-hidden="true">
+        <div class="ml-track" id="ml-track"></div>
+      </div>
     </div>
   </div>
 </header>
@@ -344,23 +376,21 @@ table.lb tr.rank-3{background:#fbf0e6}
 
       <!-- BAR 1 — triathlon equivalent, distance -->
       <div class="stackbar-block">
-        <div class="stackbar-head"><span class="stackbar-label">Triathlon equivalent — distance<button type="button" class="info-btn" aria-label="What is this?">?<span class="tip" role="tooltip">Your commute distance split across swim / bike / run, per the canonical ratio of the selected format.</span></button></span><span class="stackbar-val" id="distbar-val">—</span></div>
+        <div class="stackbar-head"><span class="stackbar-legend inline" id="distbar-legend"></span><span class="stackbar-label">Triathlon equivalent — distance<button type="button" class="info-btn" aria-label="What is this?">?<span class="tip" role="tooltip">Your commute distance split across swim / bike / run, per the canonical ratio of the selected format.</span></button></span><span class="stackbar-val" id="distbar-val">—</span></div>
         <div class="stackbar-track" id="distbar-track"></div>
-        <div class="stackbar-legend" id="distbar-legend"></div>
       </div>
 
       <!-- BAR 2 — triathlon equivalent, MET -->
       <div class="stackbar-block">
-        <div class="stackbar-head"><span class="stackbar-label">Triathlon equivalent — effort (MET·min)<button type="button" class="info-btn" aria-label="What is this?">?<span class="tip" role="tooltip">Same split, converted to MET·minutes at assumed average-person paces (swim 2.5 km/h @ 8.3 MET · bike 20 km/h @ 8.0 MET · run 10 km/h @ 9.8 MET), so it's directly comparable to the bar below.</span></button></span><span class="stackbar-val" id="metbar-val">—</span></div>
+        <div class="stackbar-head"><span class="stackbar-legend inline" id="metbar-legend"></span><span class="stackbar-label">Triathlon equivalent — effort (MET·min)<button type="button" class="info-btn" aria-label="What is this?">?<span class="tip" role="tooltip">Same split, converted to MET·minutes at assumed average-person paces (swim 2.5 km/h @ 8.3 MET · bike 20 km/h @ 8.0 MET · run 10 km/h @ 9.8 MET), so it's directly comparable to the bar below.</span></button></span><span class="stackbar-val" id="metbar-val">—</span></div>
         <div class="stackbar-track" id="metbar-track"></div>
-        <div class="stackbar-legend" id="metbar-legend"></div>
       </div>
 
       <!-- BAR 3 — logged activities, MET -->
       <div class="stackbar-block">
         <div class="stackbar-head"><span class="stackbar-label">Logged activities — effort (MET·min)<button type="button" class="info-btn" aria-label="What is this?">?<span class="tip" role="tooltip">Each segment is one activity you log below, sized by its own MET·minutes — fills against the same scale as the bar above.</span></button></span><span class="stackbar-val" id="actbar-val">—</span></div>
         <div class="stackbar-track" id="actbar-track"></div>
-        <div class="stackbar-legend" id="actbar-legend"></div>
+        <div class="stackbar-legend below" id="actbar-legend"></div>
       </div>
     </div>
   </section>
@@ -714,6 +744,13 @@ function renderStackedBar(trackId, segments, scale, legendId){
     el.style.width = pct + "%";
     el.style.background = seg.color;
     el.title = seg.label + " — " + seg.value.toFixed(2);
+    // discipline glyph, only where the segment is wide enough to hold it
+    if(seg.glyph && pct >= 6){
+      const g = document.createElement("span");
+      g.className = "seg-icon";
+      g.style.setProperty("--glyph", `url("icon-${seg.glyph}.svg")`);
+      el.appendChild(g);
+    }
     track.appendChild(el);
     cum += pct;
   });
@@ -730,17 +767,17 @@ function renderStackedBar(trackId, segments, scale, legendId){
 function renderTargetBars(){
   const t = targetSplit();
   renderStackedBar("distbar-track", [
-    {label:"Swim", value:t.swim, color:getCSS("--swim")},
-    {label:"Bike", value:t.bike, color:getCSS("--bike")},
-    {label:"Run",  value:t.run,  color:getCSS("--run")},
+    {label:"Swim", value:t.swim, color:getCSS("--swim"), glyph:"swim"},
+    {label:"Bike", value:t.bike, color:getCSS("--bike"), glyph:"bike"},
+    {label:"Run",  value:t.run,  color:getCSS("--run"),  glyph:"run"},
   ], t.total, "distbar-legend");
   document.getElementById("distbar-val").textContent = t.total.toFixed(2) + " km total";
 
   const m = targetMETSplit();
   renderStackedBar("metbar-track", [
-    {label:"Swim", value:m.swim, color:getCSS("--swim")},
-    {label:"Bike", value:m.bike, color:getCSS("--bike")},
-    {label:"Run",  value:m.run,  color:getCSS("--run")},
+    {label:"Swim", value:m.swim, color:getCSS("--swim"), glyph:"swim"},
+    {label:"Bike", value:m.bike, color:getCSS("--bike"), glyph:"bike"},
+    {label:"Run",  value:m.run,  color:getCSS("--run"),  glyph:"run"},
   ], m.total, "metbar-legend");
   document.getElementById("metbar-val").textContent = Math.round(m.total).toLocaleString() + " MET·min total";
 
@@ -807,6 +844,9 @@ function initMap(){
     };
   });
   map.on("click", e=> addMapPoint(e.latlng));
+  // the canvas is sized by aspect-ratio, so a viewport change resizes it
+  window.addEventListener("resize", ()=> map.invalidateSize());
+  setTimeout(()=> map.invalidateSize(), 0);
 
   document.querySelectorAll(".pen[data-pen]").forEach(btn=>{
     btn.addEventListener("click", ()=>{
@@ -861,6 +901,7 @@ function addActivityRow(){
   wrap.dataset.id = id;
   wrap.innerHTML = `
     <div class="arow-head" data-role="idxline">Activity</div>
+    <div class="arow-body">
     <div><label>Category</label>
       <select data-role="cat">${state.categories.map(c=>`<option value="${c.category_id}">${esc(c.name)}</option>`).join("")}</select></div>
     <div><label>Activity</label><select data-role="act"></select></div>
@@ -886,7 +927,8 @@ function addActivityRow(){
         <span data-role="wqStatusPill"></span>
       </div>
     </div>
-    <div class="rowmeta hide" data-role="meta"></div>`;
+    <div class="rowmeta hide" data-role="meta"></div>
+    </div>`;
   document.getElementById("activityRows").appendChild(wrap);
 
   const catSel = wrap.querySelector('[data-role="cat"]');
@@ -1140,8 +1182,11 @@ function buildWqTooltipHTML(site){
     ${buildWqChartSVG(history)}
   </div>`;
 }
+// Shirley's Bay 45.366,-75.884 · Lac Beauchamp 45.491,-75.622 — padded a little
+// so both sit comfortably inside the frame rather than on its edge.
+const WQ_CORE_BOUNDS = L.latLngBounds([[45.34, -75.92], [45.52, -75.58]]);
 function initWqMap(){
-  wqMap = L.map("wqMap", {scrollWheelZoom:false}).setView([45.4, -75.66], 10);
+  wqMap = L.map("wqMap", {scrollWheelZoom:false}).fitBounds(WQ_CORE_BOUNDS);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom:19, attribution:"© OpenStreetMap contributors"
   }).addTo(wqMap);
@@ -1182,7 +1227,11 @@ function renderWaterQuality(){
     wqMarkers.push(marker);
   });
   if(wqMarkers.length){
-    wqMap.fitBounds(L.featureGroup(wqMarkers).getBounds().pad(0.15));
+    // Default view is the Ottawa core — Shirley's Bay (west) to Lac Beauchamp
+    // (east) — rather than every site, which zooms out to the whole watershed.
+    // A search narrows to whatever it matched instead.
+    const q0 = q.trim();
+    wqMap.fitBounds(q0 ? L.featureGroup(wqMarkers).getBounds().pad(0.15) : WQ_CORE_BOUNDS);
   }
   updateWqTooltipDirections();
 
