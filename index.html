@@ -303,6 +303,13 @@ table.exp tr:hover td{background:var(--paper)}
 .pill{display:inline-block;font-size:11px;font-weight:600;padding:3px 9px;border-radius:var(--radius-pill);background:var(--paper);border:1px solid var(--line);color:var(--muted)}
 .count-pill{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:700;color:var(--muted);background:var(--paper);border:1px solid var(--line);padding:4px 11px;border-radius:var(--radius-pill)}
 
+/* my entries */
+.me-card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px}
+.me-name{font-weight:700;font-family:"Space Grotesk",sans-serif}
+.me-team{color:var(--muted)}
+.me-stats{display:flex;flex-wrap:wrap;gap:14px;margin-top:6px;font-size:13px;color:var(--muted)}
+.me-stats b{color:var(--ink);font-size:15px}
+
 /* leaderboard */
 table.lb tr.rank-1{background:#fdf6e3}
 table.lb tr.rank-2{background:#f6f6f4}
@@ -553,11 +560,39 @@ table.lb tr.rank-3{background:#fbf0e6}
     </div>
   </details>
 
-  <!-- 8 · FEEDBACK -->
+  <!-- 8 · MY ENTRIES (collapsed by default; email-as-identity lookup) -->
+  <details class="panel" id="meDetails">
+    <summary class="phead" style="--pa:var(--swim)">
+      <span class="phead-closed"><span class="idx">08</span><h2>My entries</h2></span>
+      <span class="phead-open"><span class="vert-label">8 · My entries</span></span>
+      <span class="summary-toggle" id="meToggleIcon">+ show</span>
+    </summary>
+    <div class="pbody">
+      <div class="btn-row" style="margin-bottom:10px;gap:8px">
+        <span class="hint" style="margin:0">Enter your email to see your commutes and totals.</span>
+      </div>
+      <div class="btn-row" style="margin-bottom:10px;gap:8px">
+        <input id="meEmail" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email" style="max-width:280px" />
+        <button type="button" class="btn" id="meLoad">Load my entries</button>
+      </div>
+      <div id="meStatus" class="lb-status"></div>
+      <div id="meSummary" style="display:none"></div>
+      <div style="overflow-x:auto">
+        <table class="exp lb" id="meTable" style="display:none">
+          <thead><tr>
+            <th>Date</th><th>Format</th><th class="num">Distance (km)</th><th class="num">MET·min</th><th class="num">Completion</th><th class="num">Activities</th>
+          </tr></thead>
+          <tbody id="meBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </details>
+
+  <!-- 9 · FEEDBACK -->
   <details class="panel" id="fbDetails">
     <summary class="phead" style="--pa:var(--run)">
-      <span class="phead-closed"><span class="idx">08</span><h2>Feedback</h2></span>
-      <span class="phead-open"><span class="vert-label">8 · Feedback</span></span>
+      <span class="phead-closed"><span class="idx">09</span><h2>Feedback</h2></span>
+      <span class="phead-open"><span class="vert-label">9 · Feedback</span></span>
       <span class="summary-toggle" id="fbToggleIcon">+ show</span>
     </summary>
     <div class="pbody">
@@ -694,6 +729,7 @@ async function init(){
   wireWaterQuality();
   wireSubmit();
   wireLeaderboard();
+  wireMe();
   wireCollapsibles();
 
   addActivityRow();          // start with one row
@@ -834,6 +870,7 @@ function wireCollapsibles(){
   wireCollapsible("explorerDetails", "explorerToggleIcon");
   wireCollapsible("wqDetails", "wqToggleIcon", ()=>{ initWqMap(); renderWaterQuality(); }, ()=> wqMap && wqMap.invalidateSize());
   wireCollapsible("lbDetails", "lbToggleIcon", loadLeaderboard);
+  wireCollapsible("meDetails", "meToggleIcon");
 }
 function wireCollapsible(detailsId, iconId, onFirstOpen, onReopen){
   const details = document.getElementById(detailsId);
@@ -1306,6 +1343,75 @@ function renderLeaderboard(rows){
       <td>${esc(r.team || "—")}</td>
       <td class="num">${r.dist.toFixed(2)}</td>
       <td class="num">${Math.round(Number(r.submission_count)||0)}</td>
+    </tr>`;
+  }).join("");
+  status.style.display = "none";
+  table.style.display = "";
+}
+
+/* ====================== MY ENTRIES ====================== */
+// Email-as-identity lookup against GET /api/me?email=. No password — the email
+// is the key. Prefills from the submit form's email when the panel opens.
+function wireMe(){
+  const details = document.getElementById("meDetails");
+  document.getElementById("meLoad").addEventListener("click", loadMe);
+  document.getElementById("meEmail").addEventListener("keydown", e=>{ if(e.key==="Enter") loadMe(); });
+  details.addEventListener("toggle", ()=>{
+    if(details.open){
+      const me = document.getElementById("meEmail");
+      if(!me.value) me.value = val("email");
+    }
+  });
+}
+async function loadMe(){
+  const email = val("meEmail");
+  const status = document.getElementById("meStatus");
+  const table = document.getElementById("meTable");
+  const summary = document.getElementById("meSummary");
+  summary.style.display = "none";
+  table.style.display = "none";
+  status.style.display = "block";
+  if(!email){ status.textContent = "Enter your email to load your entries."; return; }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ status.textContent = "That doesn't look like a valid email."; return; }
+  status.textContent = "Loading…";
+  try{
+    const res = await fetch("/api/me?email=" + encodeURIComponent(email));
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    if(!data.success) throw new Error(data.error || "Unknown error");
+    if(!data.found){ status.textContent = "No entries found for " + email + " yet."; return; }
+    renderMe(data);
+  }catch(err){
+    status.textContent = "Couldn't load your entries (" + err.message + ").";
+  }
+}
+function renderMe(data){
+  const status = document.getElementById("meStatus");
+  const table = document.getElementById("meTable");
+  const summary = document.getElementById("meSummary");
+  const p = data.participant, s = data.stats || {};
+  summary.innerHTML =
+    `<div class="me-card">
+       <div><span class="me-name">${esc(p.display_name || p.email)}</span>${p.team ? ` · <span class="me-team">${esc(p.team)}</span>` : ""}</div>
+       <div class="me-stats mono">
+         <span><b>${Math.round(Number(s.submission_count)||0)}</b> commutes</span>
+         <span><b>${(Number(s.total_distance_km)||0).toFixed(2)}</b> km</span>
+         <span><b>${Math.round(Number(s.total_met_minutes)||0)}</b> MET·min</span>
+         <span>best <b>${(Number(s.best_completion_percent)||0).toFixed(0)}%</b></span>
+       </div>
+     </div>`;
+  summary.style.display = "block";
+  const subs = data.submissions || [];
+  if(!subs.length){ status.textContent = "No submissions yet."; status.style.display = "block"; return; }
+  document.getElementById("meBody").innerHTML = subs.map(r=>{
+    const date = String(r.created_at || "").slice(0,10);
+    return `<tr>
+      <td>${esc(date)}</td>
+      <td>${esc(r.target_format || "—")}</td>
+      <td class="num">${(Number(r.total_distance_km)||0).toFixed(2)}</td>
+      <td class="num">${Math.round(Number(r.total_met_minutes)||0)}</td>
+      <td class="num">${(Number(r.completion_percent)||0).toFixed(0)}%</td>
+      <td class="num">${Math.round(Number(r.activity_count)||0)}</td>
     </tr>`;
   }).join("");
   status.style.display = "none";
