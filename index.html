@@ -1264,10 +1264,8 @@ function nearestWqSiteOptions(){
 }
 
 /* ====================== LEADERBOARD ====================== */
-// Reads the Participants sheet back through the Apps Script doGet (?sheet=)
-// added alongside the existing doPost. Confirmed working cross-origin with a
-// plain fetch() — unlike the submission POST, this GET isn't blocked by CORS,
-// so it doesn't need the no-cors workaround.
+// Reads aggregated standings from the D1-backed Pages Function
+// GET /api/leaderboard (same-origin JSON — no CORS workaround needed).
 function wireLeaderboard(){
   document.getElementById("lbRefresh").addEventListener("click", loadLeaderboard);
 }
@@ -1278,7 +1276,7 @@ async function loadLeaderboard(){
   status.style.display = "block";
   table.style.display = "none";
   try{
-    const res = await fetch(API_URL + "?sheet=Participants");
+    const res = await fetch("/api/leaderboard");
     if(!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
     if(!data.success) throw new Error(data.error || "Unknown error");
@@ -1291,7 +1289,7 @@ function renderLeaderboard(rows){
   const status = document.getElementById("lbStatus");
   const table = document.getElementById("lbTable");
   const ranked = rows
-    .map(r => Object.assign({}, r, { dist: Number(r.TotalDistanceKm) || 0 }))
+    .map(r => Object.assign({}, r, { dist: Number(r.total_distance_km) || 0 }))
     .sort((a,b)=> b.dist - a.dist);
   if(!ranked.length){
     status.textContent = "No submissions yet — be the first!";
@@ -1304,10 +1302,10 @@ function renderLeaderboard(rows){
     const medal = rank<=3 ? " r"+rank : "";
     return `<tr class="${rank<=3 ? "rank-"+rank : ""}">
       <td><span class="lb-rank${medal}">${rank}</span></td>
-      <td class="lb-name">${esc(r.DisplayName || "—")}</td>
-      <td>${esc(r.Team || "—")}</td>
+      <td class="lb-name">${esc(r.display_name || "—")}</td>
+      <td>${esc(r.team || "—")}</td>
       <td class="num">${r.dist.toFixed(2)}</td>
-      <td class="num">${Math.round(Number(r.SubmissionCount)||0)}</td>
+      <td class="num">${Math.round(Number(r.submission_count)||0)}</td>
     </tr>`;
   }).join("");
   status.style.display = "none";
