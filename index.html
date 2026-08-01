@@ -310,6 +310,26 @@ table.exp tr:hover td{background:var(--paper)}
 .me-stats{display:flex;flex-wrap:wrap;gap:14px;margin-top:6px;font-size:13px;color:var(--muted)}
 .me-stats b{color:var(--ink);font-size:15px}
 
+/* awards */
+.awards-title{font-size:14px;margin:16px 0 8px;padding-top:12px;border-top:1px solid var(--line)}
+.awards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:9px}
+.award-card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius-sm);padding:9px 11px}
+.award-card.unfilled{opacity:.55}
+.award-name{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:13px;display:flex;align-items:center;gap:6px}
+.award-name::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--gold);flex:0 0 auto}
+.award-card.unfilled .award-name::before{background:var(--line)}
+.award-desc{font-size:11px;color:var(--muted);margin:2px 0 6px}
+.award-winner{font-size:13px}
+.award-winner b{font-family:"IBM Plex Mono",monospace}
+.award-none{font-size:12px;color:var(--muted);font-style:italic}
+
+/* rate activities */
+.rate-sliders{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+@media(max-width:520px){.rate-sliders{grid-template-columns:1fr}}
+.rate-slider label{display:flex;justify-content:space-between;align-items:center;text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink)}
+.rate-slider input[type=range]{width:100%;accent-color:var(--bike);padding:0}
+.rate-val{font-family:"IBM Plex Mono",monospace;font-weight:700;color:var(--bike);background:var(--paper);border:1px solid var(--line);border-radius:var(--radius-pill);padding:1px 9px;font-size:12px}
+
 /* leaderboard */
 table.lb tr.rank-1{background:#fdf6e3}
 table.lb tr.rank-2{background:#f6f6f4}
@@ -369,7 +389,17 @@ table.lb tr.rank-3{background:#fbf0e6}
         <div class="field"><label for="email">Email</label><input id="email" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email" /></div>
         <div class="field"><label for="displayName">Display name</label><input id="displayName" placeholder="e.g. J. Tremblay" autocomplete="name" /></div>
         <div class="field"><label for="team">Team / branch</label><input id="team" placeholder="e.g. Data Services" /></div>
-        <div class="field"><label for="commuteMode">Usual commute mode</label><input id="commuteMode" placeholder="e.g. OC Transpo + walk" /></div>
+        <div class="field"><label for="commuteMode">Usual commute mode</label>
+          <select id="commuteMode">
+            <option value="">Select…</option>
+            <option value="drive">Drive</option>
+            <option value="transit">Transit</option>
+            <option value="walk">Walk</option>
+            <option value="bike">Bike</option>
+            <option value="run">Run</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
         <div class="field">
           <label for="targetDistance">Challenge distance (km)</label>
           <input id="targetDistance" type="number" min="0" step="0.1" inputmode="decimal" value="10" />
@@ -557,6 +587,10 @@ table.lb tr.rank-3{background:#fbf0e6}
           <tbody id="lbBody"></tbody>
         </table>
       </div>
+
+      <h3 class="awards-title">Awards</h3>
+      <div id="awardsStatus" class="hint" style="margin:0 0 8px">Loading awards…</div>
+      <div id="awardsGrid" class="awards-grid"></div>
     </div>
   </details>
 
@@ -588,11 +622,45 @@ table.lb tr.rank-3{background:#fbf0e6}
     </div>
   </details>
 
-  <!-- 9 · FEEDBACK -->
+  <!-- 9 · RATE & RANK ACTIVITIES (collapsed by default; fetched lazily on first expand) -->
+  <details class="panel" id="rateDetails">
+    <summary class="phead" style="--pa:var(--bike)">
+      <span class="phead-closed"><span class="idx">09</span><h2>Rate &amp; rank activities</h2></span>
+      <span class="phead-open"><span class="vert-label">9 · Rate activities</span></span>
+      <span class="summary-toggle" id="rateToggleIcon">+ show</span>
+    </summary>
+    <div class="pbody">
+      <span class="hint" style="margin:0 0 10px;display:block">How fun, original, and hard is each way to commute? Rate 1–10.</span>
+      <div class="grid2" style="align-items:end">
+        <div class="field"><label for="rateEmail">Email</label><input id="rateEmail" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email" /></div>
+        <div class="field"><label for="rateActivity">Activity</label><select id="rateActivity"></select></div>
+      </div>
+      <div class="rate-sliders">
+        <div class="rate-slider"><label for="rateFun">Fun <span class="rate-val" id="rateFunVal">5</span></label><input type="range" id="rateFun" min="1" max="10" step="1" value="5" /></div>
+        <div class="rate-slider"><label for="rateOrig">Originality <span class="rate-val" id="rateOrigVal">5</span></label><input type="range" id="rateOrig" min="1" max="10" step="1" value="5" /></div>
+        <div class="rate-slider"><label for="rateDiff">Difficulty <span class="rate-val" id="rateDiffVal">5</span></label><input type="range" id="rateDiff" min="1" max="10" step="1" value="5" /></div>
+      </div>
+      <div class="btn-row" style="margin-top:10px">
+        <button type="button" class="btn" id="rateSubmit">Submit rating</button>
+        <button type="button" class="btn ghost sm" id="rateRefresh" style="margin-left:auto">Refresh rankings</button>
+      </div>
+      <div class="status" id="rateStatus" role="status" aria-live="polite"></div>
+      <div style="overflow-x:auto;margin-top:12px">
+        <table class="exp lb" id="rateTable" style="display:none">
+          <thead><tr>
+            <th>Activity</th><th class="num">Fun</th><th class="num">Originality</th><th class="num">Difficulty</th><th class="num">Votes</th>
+          </tr></thead>
+          <tbody id="rateBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </details>
+
+  <!-- 10 · FEEDBACK -->
   <details class="panel" id="fbDetails">
     <summary class="phead" style="--pa:var(--run)">
-      <span class="phead-closed"><span class="idx">09</span><h2>Feedback</h2></span>
-      <span class="phead-open"><span class="vert-label">9 · Feedback</span></span>
+      <span class="phead-closed"><span class="idx">10</span><h2>Feedback</h2></span>
+      <span class="phead-open"><span class="vert-label">10 · Feedback</span></span>
       <span class="summary-toggle" id="fbToggleIcon">+ show</span>
     </summary>
     <div class="pbody">
@@ -654,6 +722,7 @@ const state = {
   activities: [],          // from activities.csv
   categories: [],          // from categories.csv
   seasons: [],             // from seasons.csv
+  awards: [],              // from awards.csv (id/name/description)
   byId: {},                // activity_id -> activity
   waterQuality: [],        // from water_quality.csv, raw rows
   wqBySite: {},            // site -> latest E. coli reading
@@ -700,15 +769,17 @@ async function loadCSV(path){
 /* ====================== INIT ====================== */
 async function init(){
   try{
-    const [acts, cats, seasons, wq] = await Promise.all([
+    const [acts, cats, seasons, wq, awards] = await Promise.all([
       loadCSV("./data/activities.csv"),
       loadCSV("./data/categories.csv"),
       loadCSV("./data/seasons.csv"),
       loadCSV("./data/water_quality.csv"),
+      loadCSV("./data/awards.csv"),
     ]);
     state.activities = acts.filter(a => (a.status||"active") === "active");
     state.categories = cats.sort((a,b)=> (+a.sort_order||99) - (+b.sort_order||99));
     state.seasons = seasons;
+    state.awards = awards;
     state.byId = Object.fromEntries(state.activities.map(a => [a.activity_id, a]));
     state.waterQuality = wq;
     state.wqBySite = buildWaterQualityIndex(wq);
@@ -730,6 +801,7 @@ async function init(){
   wireSubmit();
   wireLeaderboard();
   wireMe();
+  wireRate();
   wireCollapsibles();
 
   addActivityRow();          // start with one row
@@ -871,6 +943,7 @@ function wireCollapsibles(){
   wireCollapsible("wqDetails", "wqToggleIcon", ()=>{ initWqMap(); renderWaterQuality(); }, ()=> wqMap && wqMap.invalidateSize());
   wireCollapsible("lbDetails", "lbToggleIcon", loadLeaderboard);
   wireCollapsible("meDetails", "meToggleIcon");
+  wireCollapsible("rateDetails", "rateToggleIcon", loadRatings);
 }
 function wireCollapsible(detailsId, iconId, onFirstOpen, onReopen){
   const details = document.getElementById(detailsId);
@@ -1312,6 +1385,7 @@ async function loadLeaderboard(){
   status.textContent = "Loading…";
   status.style.display = "block";
   table.style.display = "none";
+  loadAwards();
   try{
     const res = await fetch("/api/leaderboard");
     if(!res.ok) throw new Error("HTTP " + res.status);
@@ -1321,6 +1395,48 @@ async function loadLeaderboard(){
   }catch(err){
     status.textContent = "Couldn't load the leaderboard (" + err.message + "). Try Refresh.";
   }
+}
+// Award values carry different units; format each by award_id.
+const AWARD_UNITS = {
+  met_monster:"MET·min", commute_athlon_champion:"%", fun_machine:"fun", most_original:"orig",
+  daily_grinder:"commutes", office_tower_legend:"storeys", winter_warrior:"km",
+  water_creature:"km", wheel_wizard:"km", human_hybrid:"types",
+};
+async function loadAwards(){
+  const statusEl = document.getElementById("awardsStatus");
+  const grid = document.getElementById("awardsGrid");
+  statusEl.style.display = "block";
+  statusEl.textContent = "Loading awards…";
+  try{
+    const res = await fetch("/api/awards");
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    if(!data.success) throw new Error(data.error || "Unknown error");
+    renderAwards(data.winners || {});
+    statusEl.style.display = "none";
+  }catch(err){
+    grid.innerHTML = "";
+    statusEl.textContent = "Couldn't load awards (" + err.message + ").";
+  }
+}
+function renderAwards(winners){
+  const grid = document.getElementById("awardsGrid");
+  grid.innerHTML = state.awards.map(a=>{
+    const w = winners[a.award_id];
+    const unit = AWARD_UNITS[a.award_id] || "";
+    const body = w
+      ? `<div class="award-winner"><b>${esc(w.name)}</b>${w.team ? " · " + esc(w.team) : ""}<br><span class="hint" style="margin:0">${fmtAwardVal(w.value)} ${esc(unit)}</span></div>`
+      : `<div class="award-none">Not yet awarded</div>`;
+    return `<div class="award-card${w ? "" : " unfilled"}">
+      <div class="award-name">${esc(a.name)}</div>
+      <div class="award-desc">${esc(a.description || "")}</div>
+      ${body}
+    </div>`;
+  }).join("");
+}
+function fmtAwardVal(v){
+  const n = Number(v) || 0;
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 function renderLeaderboard(rows){
   const status = document.getElementById("lbStatus");
@@ -1416,6 +1532,89 @@ function renderMe(data){
   }).join("");
   status.style.display = "none";
   table.style.display = "";
+}
+
+/* ====================== RATE & RANK ACTIVITIES ====================== */
+// Community ratings against POST /api/rate + GET /api/ratings. 1-10 on fun /
+// originality / difficulty; one vote per person per activity (re-rating upserts).
+function wireRate(){
+  const sel = document.getElementById("rateActivity");
+  const byCat = {};
+  state.activities.forEach(a=>{ (byCat[a.category] = byCat[a.category] || []).push(a); });
+  state.categories.forEach(c=>{
+    const list = byCat[c.category_id];
+    if(!list || !list.length) return;
+    const og = document.createElement("optgroup"); og.label = c.name;
+    list.forEach(a=>{ const o=document.createElement("option"); o.value=a.activity_id; o.textContent=a.name; og.appendChild(o); });
+    sel.appendChild(og);
+  });
+  [["rateFun","rateFunVal"],["rateOrig","rateOrigVal"],["rateDiff","rateDiffVal"]].forEach(([inp,out])=>{
+    const el = document.getElementById(inp);
+    el.addEventListener("input", ()=>{ document.getElementById(out).textContent = el.value; });
+  });
+  document.getElementById("rateSubmit").addEventListener("click", submitRating);
+  document.getElementById("rateRefresh").addEventListener("click", loadRatings);
+  const details = document.getElementById("rateDetails");
+  details.addEventListener("toggle", ()=>{
+    if(details.open){ const e=document.getElementById("rateEmail"); if(!e.value) e.value = val("email"); }
+  });
+}
+async function submitRating(){
+  const email = val("rateEmail");
+  const activityId = document.getElementById("rateActivity").value;
+  if(!email){ return showRateStatus("err","Add your email to rate."); }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ return showRateStatus("err","That doesn't look like a valid email."); }
+  if(!activityId){ return showRateStatus("err","Pick an activity."); }
+  const btn = document.getElementById("rateSubmit");
+  btn.disabled = true;
+  showRateStatus("work","Saving…");
+  try{
+    const res = await fetch("/api/rate", {
+      method:"POST", headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({
+        email, activityId,
+        fun: +document.getElementById("rateFun").value,
+        originality: +document.getElementById("rateOrig").value,
+        difficulty: +document.getElementById("rateDiff").value,
+      }),
+    });
+    const data = await res.json();
+    if(data.success){ showRateStatus("ok","Rating saved ✓"); loadRatings(); }
+    else showRateStatus("err", data.error || "Something went wrong.");
+  }catch(err){ showRateStatus("err","Network error: " + err.message); }
+  finally{ btn.disabled = false; }
+}
+async function loadRatings(){
+  try{
+    const res = await fetch("/api/ratings");
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    if(!data.success) throw new Error(data.error || "Unknown error");
+    renderRatings(data.rows || []);
+  }catch(err){ showRateStatus("err","Couldn't load rankings (" + err.message + ")."); }
+}
+function renderRatings(rows){
+  const table = document.getElementById("rateTable");
+  const body = document.getElementById("rateBody");
+  if(!rows.length){ table.style.display="none"; return; }
+  const ranked = rows.slice().sort((a,b)=> (Number(b.avg_fun)||0) - (Number(a.avg_fun)||0));
+  body.innerHTML = ranked.map(r=>{
+    const name = (state.byId[r.activity_id] && state.byId[r.activity_id].name) || r.activity_id;
+    const cell = v => (v==null || v==="") ? "—" : Number(v).toFixed(1);
+    return `<tr>
+      <td class="lb-name">${esc(name)}</td>
+      <td class="num">${cell(r.avg_fun)}</td>
+      <td class="num">${cell(r.avg_originality)}</td>
+      <td class="num">${cell(r.avg_difficulty)}</td>
+      <td class="num">${Math.round(Number(r.vote_count)||0)}</td>
+    </tr>`;
+  }).join("");
+  table.style.display = "";
+}
+function showRateStatus(kind, msg){
+  const s = document.getElementById("rateStatus");
+  s.className = "status show " + kind;
+  s.textContent = msg;
 }
 
 /* ====================== SEASONS ====================== */
