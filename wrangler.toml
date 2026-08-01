@@ -1,0 +1,7 @@
+name = "commute-a-thlon"
+pages_build_output_dir = "."
+
+[[d1_databases]]
+binding = "FEEDBACK_DB"
+database_name = "commute-a-thlon-feedback"
+database_id = "e4b3e6bf-8419-499a-b5e2-0546f1702ff0"

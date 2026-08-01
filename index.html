@@ -551,6 +551,25 @@ table.lb tr.rank-3{background:#fbf0e6}
     </div>
   </details>
 
+  <!-- 8 · FEEDBACK -->
+  <details class="panel" id="fbDetails">
+    <summary class="phead" style="--pa:var(--run)">
+      <span class="phead-closed"><span class="idx">08</span><h2>Feedback</h2></span>
+      <span class="phead-open"><span class="vert-label">8 · Feedback</span></span>
+      <span class="summary-toggle" id="fbToggleIcon">+ show</span>
+    </summary>
+    <div class="pbody">
+      <label for="fbName">Name (optional)</label>
+      <input id="fbName" placeholder="Optional" />
+      <label for="fbMessage" style="margin-top:10px">Message</label>
+      <textarea id="fbMessage" rows="4" placeholder="Bugs, ideas, anything else…" style="width:100%;resize:vertical"></textarea>
+      <div class="btn-row" style="margin-top:10px">
+        <button type="button" class="btn" id="fbSubmit">Send feedback</button>
+      </div>
+      <div class="status" id="fbStatus" role="status" aria-live="polite"></div>
+    </div>
+  </details>
+
 </main>
 
 <footer class="foot">
@@ -1400,6 +1419,41 @@ function showStatus(kind, msg){
   s.className = "status show " + kind;
   s.textContent = msg;
 }
+
+async function submitFeedback(){
+  const message = val("fbMessage");
+  if(!message){ return showFbStatus("err", "Add a message before sending."); }
+
+  const btn = document.getElementById("fbSubmit");
+  btn.disabled = true;
+  showFbStatus("work", "Sending…");
+
+  try{
+    const res = await fetch("/api/feedback", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ name: val("fbName"), message }),
+    });
+    const data = await res.json();
+    if(data.success){
+      showFbStatus("ok", "Thanks — feedback sent.");
+      document.getElementById("fbMessage").value = "";
+      document.getElementById("fbName").value = "";
+    }else{
+      showFbStatus("err", data.error || "Something went wrong.");
+    }
+  }catch(err){
+    showFbStatus("err", "Network error: " + err.message);
+  }finally{
+    btn.disabled = false;
+  }
+}
+function showFbStatus(kind, msg){
+  const s = document.getElementById("fbStatus");
+  s.className = "status show " + kind;
+  s.textContent = msg;
+}
+document.getElementById("fbSubmit")?.addEventListener("click", submitFeedback);
 
 /* ====================== UTIL ====================== */
 function sum(a){ return a.reduce((x,y)=>x+(+y||0),0); }
