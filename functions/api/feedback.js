@@ -1,6 +1,6 @@
 // Cloudflare Pages Function — POST /api/feedback
-// Requires a D1 database bound as FEEDBACK_DB (Pages project Settings →
-// Functions → D1 database bindings). Schema: d1/schema.sql.
+// Requires a D1 database bound as DB (configured in wrangler.toml).
+// Schema: d1/schema.sql.
 
 const MAX_MESSAGE_LEN = 2000;
 const MAX_NAME_LEN = 100;
@@ -27,7 +27,7 @@ export async function onRequestPost({ request, env }) {
   }
 
   try {
-    await env.FEEDBACK_DB
+    await env.DB
       .prepare("INSERT INTO feedback (name, message) VALUES (?, ?)")
       .bind(name || null, message)
       .run();
