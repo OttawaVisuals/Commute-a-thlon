@@ -355,6 +355,25 @@ table.lb tr.rank-3{background:#fbf0e6}
 .submitbar .status.err{background:rgba(180,83,31,.3);border:1px solid transparent;color:#fbe4d8}
 .submitbar .status.work{background:rgba(255,255,255,.15);border:1px solid transparent;color:#fff}
 
+/* tabs */
+.tabbar{position:sticky;top:0;z-index:60;background:var(--paper);border-bottom:1px solid var(--line)}
+.tabbar-inner{max-width:var(--content-w);margin:0 auto;padding:0 20px;display:flex;gap:2px;overflow-x:auto}
+.tabbtn{appearance:none;background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-1px;
+  padding:12px 16px;font-family:"Space Grotesk",sans-serif;font-size:15px;font-weight:700;color:var(--muted);
+  cursor:pointer;display:flex;align-items:center;gap:7px;letter-spacing:-.01em;white-space:nowrap}
+.tabbtn:hover{color:var(--ink)}
+.tabbtn[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--bike)}
+.tab{display:none}
+.tab.active{display:grid;gap:10px}
+body.tab-standings .submitbar,body.tab-mine .submitbar{display:none}
+/* optional tools group */
+.tools-head{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:12px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.06em;margin:8px 2px 0}
+/* usual commute — primary + optional second leg */
+.commute-legs{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.commute-legs select{flex:1;min-width:120px}
+.commute-legs .then{font-size:12px;color:var(--muted)}
+
 .foot{max-width:var(--content-w);margin:0 auto;padding:16px 20px 24px;color:var(--muted);font-size:13px}
 .todo{background:#fff;border:1.5px dashed var(--line);border-radius:var(--radius-sm);padding:10px 12px;margin-top:10px;font-size:13px;color:var(--muted)}
 .todo b{color:var(--ink)}
@@ -379,27 +398,58 @@ table.lb tr.rank-3{background:#fbf0e6}
 
 <div id="load-error" class="loaderr" style="display:none;max-width:1200px;margin:14px auto 0"></div>
 
+<nav class="tabbar">
+  <div class="tabbar-inner" role="tablist" aria-label="Sections">
+    <button type="button" class="tabbtn" data-tab="log" role="tab" aria-selected="true"><span aria-hidden="true">✎</span> Log a commute</button>
+    <button type="button" class="tabbtn" data-tab="standings" role="tab" aria-selected="false"><span aria-hidden="true">▲</span> Standings</button>
+    <button type="button" class="tabbtn" data-tab="mine" role="tab" aria-selected="false"><span aria-hidden="true">◆</span> My entries</button>
+  </div>
+</nav>
+
 <main>
 
-  <!-- 1 · TARGET -->
+  <div class="tab active" id="tab-log">
+
+  <!-- 1 · ABOUT YOU -->
   <section class="panel panel-side">
-    <div class="phead-vert" style="--pa:var(--swim)"><span class="vert-label">1 · Target</span></div>
+    <div class="phead-vert" style="--pa:var(--swim)"><span class="vert-label">1 · About you</span></div>
     <div class="pbody">
-      <div class="grid6">
+      <div class="grid4">
         <div class="field"><label for="email">Email</label><input id="email" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email" /></div>
         <div class="field"><label for="displayName">Display name</label><input id="displayName" placeholder="e.g. J. Tremblay" autocomplete="name" /></div>
         <div class="field"><label for="team">Team / branch</label><input id="team" placeholder="e.g. Data Services" /></div>
-        <div class="field"><label for="commuteMode">Usual commute mode</label>
-          <select id="commuteMode">
-            <option value="">Select…</option>
-            <option value="drive">Drive</option>
-            <option value="transit">Transit</option>
-            <option value="walk">Walk</option>
-            <option value="bike">Bike</option>
-            <option value="run">Run</option>
-            <option value="other">Other</option>
-          </select>
+        <div class="field"><label for="commuteMode">Usual commute</label>
+          <div class="commute-legs">
+            <select id="commuteMode" aria-label="Usual commute — main mode">
+              <option value="">Main mode…</option>
+              <option value="drive">Drive</option>
+              <option value="transit">Transit</option>
+              <option value="walk">Walk</option>
+              <option value="bike">Bike</option>
+              <option value="run">Run</option>
+              <option value="other">Other</option>
+            </select>
+            <span class="then">then</span>
+            <select id="commuteMode2" aria-label="Usual commute — optional second leg">
+              <option value="">(2nd leg)</option>
+              <option value="drive">Drive</option>
+              <option value="transit">Transit</option>
+              <option value="walk">Walk</option>
+              <option value="bike">Bike</option>
+              <option value="run">Run</option>
+            </select>
+          </div>
+          <div class="hint">Add a second leg for mixed commutes, e.g. transit then walk.</div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · YOUR CHALLENGE -->
+  <section class="panel panel-side">
+    <div class="phead-vert" style="--pa:var(--bike)"><span class="vert-label">2 · Your challenge</span></div>
+    <div class="pbody">
+      <div class="grid2">
         <div class="field">
           <label for="targetDistance">Challenge distance (km)</label>
           <input id="targetDistance" type="number" min="0" step="0.1" inputmode="decimal" value="10" />
@@ -436,7 +486,7 @@ table.lb tr.rank-3{background:#fbf0e6}
 
   <!-- 2 · ACTIVITIES -->
   <section class="panel panel-side">
-    <div class="phead-vert" style="--pa:var(--bike)"><span class="vert-label">2 · Activities</span></div>
+    <div class="phead-vert" style="--pa:var(--run)"><span class="vert-label">3 · Log your activities</span></div>
     <div class="pbody">
       <div id="activityRows"></div>
       <div class="btn-row" style="margin-top:4px">
@@ -458,11 +508,13 @@ table.lb tr.rank-3{background:#fbf0e6}
     </div>
   </section>
 
-  <!-- 3 · ROUTE (optional / collapsible) -->
+  <div class="tools-head">Optional tools</div>
+
+  <!-- ROUTE (optional / collapsible) -->
   <details class="panel" id="routeDetails">
     <summary class="phead" style="--pa:var(--run)">
-      <span class="phead-closed"><span class="idx">03</span><h2>Sketch your route <span class="hint" style="display:inline;text-transform:none">(optional)</span></h2></span>
-      <span class="phead-open"><span class="vert-label">3 · Route</span></span>
+      <span class="phead-closed"><h2>Sketch your route <span class="hint" style="display:inline;text-transform:none">(optional)</span></h2></span>
+      <span class="phead-open"><span class="vert-label">Route</span></span>
       <span class="summary-toggle" id="routeToggleIcon">+ show</span>
     </summary>
     <div class="pbody">
@@ -486,36 +538,14 @@ table.lb tr.rank-3{background:#fbf0e6}
     </div>
   </details>
 
-  <!-- 4 · METRICS -->
-  <section class="panel panel-side">
-    <div class="phead-vert" style="--pa:var(--gold)"><span class="vert-label">4 · Metrics</span></div>
-    <div class="pbody">
-      <div class="instr">
-        <div class="cell completion wide" id="cell-completion">
-          <div class="k">Completion vs target</div>
-          <div class="v" id="m-completion">—</div>
-        </div>
-        <div class="cell"><div class="k">Effort</div><div class="v" id="m-met">0<small> MET·min</small></div></div>
-        <div class="cell"><div class="k">Activities</div><div class="v" id="m-count">0</div></div>
-        <div class="cell"><div class="k">Active min</div><div class="v" id="m-active">0</div></div>
-        <div class="cell"><div class="k">Elapsed min</div><div class="v" id="m-elapsed">0</div></div>
-        <div class="cell"><div class="k">Distance</div><div class="v" id="m-dist">0<small> km</small></div></div>
-        <div class="cell"><div class="k">Storeys</div><div class="v" id="m-storeys">0</div></div>
-        <div class="cell"><div class="k">Fun score</div><div class="v" id="m-fun">—</div></div>
-        <div class="cell"><div class="k">Originality</div><div class="v" id="m-orig">—</div></div>
-      </div>
-      <p class="submit-note hint" style="margin-top:10px">Submitting writes one row to <b>Submissions</b> and one row per activity to <b>Activities</b>.</p>
-      <div class="todo">
-        <b>Not yet wired:</b> leaderboards, awards, trends, personal records and community ratings all need a <span class="mono">doGet</span> read endpoint on the Apps Script that returns sheet data. The client and CSVs are ready for them — see the README.
-      </div>
-    </div>
-  </section>
+  <!-- summary panel moved to the end of the Log tab -->
+
 
   <!-- 5 · FREESTYLE / ACTIVITY EXPLORER (collapsed by default — advanced tool, not part of the core log-a-commute flow) -->
   <details class="panel" id="explorerDetails">
     <summary class="phead" style="--pa:var(--bike)">
-      <span class="phead-closed"><span class="idx">05</span><h2>Freestyle · Activity explorer</h2></span>
-      <span class="phead-open"><span class="vert-label">5 · Explorer</span></span>
+      <span class="phead-closed"><h2>Activity explorer</h2></span>
+      <span class="phead-open"><span class="vert-label">Activity explorer</span></span>
       <span class="summary-toggle" id="explorerToggleIcon">+ show</span>
     </summary>
     <div class="pbody">
@@ -541,8 +571,8 @@ table.lb tr.rank-3{background:#fbf0e6}
   <!-- 6 · WATER QUALITY (collapsed by default; map is lazy-inited on first expand) -->
   <details class="panel" id="wqDetails">
     <summary class="phead" style="--pa:var(--swim)">
-      <span class="phead-closed"><span class="idx">06</span><h2>Water quality</h2><span class="count-pill" id="wq-updated-badge">—</span></span>
-      <span class="phead-open"><span class="vert-label">6 · Water quality</span></span>
+      <span class="phead-closed"><h2>Water quality</h2><span class="count-pill" id="wq-updated-badge">—</span></span>
+      <span class="phead-open"><span class="vert-label">Water quality</span></span>
       <span class="summary-toggle" id="wqToggleIcon">+ show</span>
     </summary>
     <div class="pbody">
@@ -566,12 +596,38 @@ table.lb tr.rank-3{background:#fbf0e6}
     </div>
   </details>
 
-  <!-- 7 · LEADERBOARD (collapsed by default; fetched lazily on first expand) -->
-  <details class="panel" id="lbDetails">
+  <!-- 4 · SUMMARY -->
+  <section class="panel panel-side">
+    <div class="phead-vert" style="--pa:var(--gold)"><span class="vert-label">4 · Summary</span></div>
+    <div class="pbody">
+      <div class="instr">
+        <div class="cell completion wide" id="cell-completion">
+          <div class="k">Completion vs target</div>
+          <div class="v" id="m-completion">—</div>
+        </div>
+        <div class="cell"><div class="k">Effort</div><div class="v" id="m-met">0<small> MET·min</small></div></div>
+        <div class="cell"><div class="k">Activities</div><div class="v" id="m-count">0</div></div>
+        <div class="cell"><div class="k">Active min</div><div class="v" id="m-active">0</div></div>
+        <div class="cell"><div class="k">Elapsed min</div><div class="v" id="m-elapsed">0</div></div>
+        <div class="cell"><div class="k">Distance</div><div class="v" id="m-dist">0<small> km</small></div></div>
+        <div class="cell"><div class="k">Storeys</div><div class="v" id="m-storeys">0</div></div>
+        <div class="cell"><div class="k">Fun score</div><div class="v" id="m-fun">—</div></div>
+        <div class="cell"><div class="k">Originality</div><div class="v" id="m-orig">—</div></div>
+      </div>
+      <p class="submit-note hint" style="margin-top:10px">Submitting saves your commute to the database — you'll get a confirmation right here.</p>
+    </div>
+  </section>
+
+  </div><!-- /tab-log -->
+
+  <div class="tab" id="tab-standings">
+
+  <!-- LEADERBOARD + AWARDS -->
+  <details class="panel" id="lbDetails" open>
     <summary class="phead" style="--pa:var(--run)">
-      <span class="phead-closed"><span class="idx">07</span><h2>Leaderboard</h2></span>
-      <span class="phead-open"><span class="vert-label">7 · Leaderboard</span></span>
-      <span class="summary-toggle" id="lbToggleIcon">+ show</span>
+      <span class="phead-closed"><h2>Leaderboard</h2></span>
+      <span class="phead-open"><span class="vert-label">Leaderboard</span></span>
+      <span class="summary-toggle" id="lbToggleIcon">− hide</span>
     </summary>
     <div class="pbody">
       <div class="btn-row" style="margin-bottom:10px">
@@ -594,39 +650,13 @@ table.lb tr.rank-3{background:#fbf0e6}
     </div>
   </details>
 
-  <!-- 8 · MY ENTRIES (collapsed by default; email-as-identity lookup) -->
-  <details class="panel" id="meDetails">
-    <summary class="phead" style="--pa:var(--swim)">
-      <span class="phead-closed"><span class="idx">08</span><h2>My entries</h2></span>
-      <span class="phead-open"><span class="vert-label">8 · My entries</span></span>
-      <span class="summary-toggle" id="meToggleIcon">+ show</span>
-    </summary>
-    <div class="pbody">
-      <div class="btn-row" style="margin-bottom:10px;gap:8px">
-        <span class="hint" style="margin:0">Enter your email to see your commutes and totals.</span>
-      </div>
-      <div class="btn-row" style="margin-bottom:10px;gap:8px">
-        <input id="meEmail" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email" style="max-width:280px" />
-        <button type="button" class="btn" id="meLoad">Load my entries</button>
-      </div>
-      <div id="meStatus" class="lb-status"></div>
-      <div id="meSummary" style="display:none"></div>
-      <div style="overflow-x:auto">
-        <table class="exp lb" id="meTable" style="display:none">
-          <thead><tr>
-            <th>Date</th><th>Format</th><th class="num">Distance (km)</th><th class="num">MET·min</th><th class="num">Completion</th><th class="num">Activities</th>
-          </tr></thead>
-          <tbody id="meBody"></tbody>
-        </table>
-      </div>
-    </div>
-  </details>
+  <!-- my entries panel lives in the My entries tab -->
 
   <!-- 9 · RATE & RANK ACTIVITIES (collapsed by default; fetched lazily on first expand) -->
   <details class="panel" id="rateDetails">
     <summary class="phead" style="--pa:var(--bike)">
-      <span class="phead-closed"><span class="idx">09</span><h2>Rate &amp; rank activities</h2></span>
-      <span class="phead-open"><span class="vert-label">9 · Rate activities</span></span>
+      <span class="phead-closed"><h2>Rate &amp; rank activities</h2></span>
+      <span class="phead-open"><span class="vert-label">Rate activities</span></span>
       <span class="summary-toggle" id="rateToggleIcon">+ show</span>
     </summary>
     <div class="pbody">
@@ -656,11 +686,45 @@ table.lb tr.rank-3{background:#fbf0e6}
     </div>
   </details>
 
-  <!-- 10 · FEEDBACK -->
+  </div><!-- /tab-standings -->
+
+  <div class="tab" id="tab-mine">
+
+  <!-- MY ENTRIES -->
+  <details class="panel" id="meDetails" open>
+    <summary class="phead" style="--pa:var(--swim)">
+      <span class="phead-closed"><h2>My entries</h2></span>
+      <span class="phead-open"><span class="vert-label">My entries</span></span>
+      <span class="summary-toggle" id="meToggleIcon">− hide</span>
+    </summary>
+    <div class="pbody">
+      <div class="btn-row" style="margin-bottom:10px;gap:8px">
+        <span class="hint" style="margin:0">Enter your email to see your commutes and totals.</span>
+      </div>
+      <div class="btn-row" style="margin-bottom:10px;gap:8px">
+        <input id="meEmail" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email" style="max-width:280px" />
+        <button type="button" class="btn" id="meLoad">Load my entries</button>
+      </div>
+      <div id="meStatus" class="lb-status"></div>
+      <div id="meSummary" style="display:none"></div>
+      <div style="overflow-x:auto">
+        <table class="exp lb" id="meTable" style="display:none">
+          <thead><tr>
+            <th>Date</th><th>Format</th><th class="num">Distance (km)</th><th class="num">MET·min</th><th class="num">Completion</th><th class="num">Activities</th>
+          </tr></thead>
+          <tbody id="meBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </details>
+
+  </div><!-- /tab-mine -->
+
+  <!-- FEEDBACK (always available, below the tabs) -->
   <details class="panel" id="fbDetails">
     <summary class="phead" style="--pa:var(--run)">
-      <span class="phead-closed"><span class="idx">10</span><h2>Feedback</h2></span>
-      <span class="phead-open"><span class="vert-label">10 · Feedback</span></span>
+      <span class="phead-closed"><h2>Feedback</h2></span>
+      <span class="phead-open"><span class="vert-label">Feedback</span></span>
       <span class="summary-toggle" id="fbToggleIcon">+ show</span>
     </summary>
     <div class="pbody">
@@ -802,7 +866,9 @@ async function init(){
   wireLeaderboard();
   wireMe();
   wireRate();
+  wireTabs();
   wireCollapsibles();
+  document.body.classList.add("tab-log");
 
   addActivityRow();          // start with one row
   setFormat("olympic", true);
@@ -1534,6 +1600,24 @@ function renderMe(data){
   table.style.display = "";
 }
 
+/* ====================== TABS ====================== */
+function wireTabs(){
+  document.querySelectorAll(".tabbtn").forEach(btn=>{
+    btn.addEventListener("click", ()=> selectTab(btn.dataset.tab));
+  });
+}
+function selectTab(name){
+  document.querySelectorAll(".tabbtn").forEach(b=>
+    b.setAttribute("aria-selected", b.dataset.tab === name ? "true" : "false"));
+  document.querySelectorAll(".tab").forEach(t=>
+    t.classList.toggle("active", t.id === "tab-" + name));
+  document.body.classList.remove("tab-log","tab-standings","tab-mine");
+  document.body.classList.add("tab-" + name);
+  if(name === "standings"){ loadLeaderboard(); loadRatings(); }
+  if(name === "mine"){ const e=document.getElementById("meEmail"); if(!e.value) e.value = val("email"); }
+  window.scrollTo({ top:0, behavior:"smooth" });
+}
+
 /* ====================== RATE & RANK ACTIVITIES ====================== */
 // Community ratings against POST /api/rate + GET /api/ratings. 1-10 on fun /
 // originality / difficulty; one vote per person per activity (re-rating upserts).
@@ -1637,6 +1721,13 @@ function seasonForRow(cat){
 // NOTE: keys are camelCase to match the Apps Script doPost, which reads
 // data.displayName, activity.activityId, etc. The script generates
 // SubmissionID / Timestamp / Year / Month / Week server-side, so we don't send them.
+// Combine the primary commute mode with an optional second leg, e.g.
+// "transit + walk". Falls back to whichever single leg is set.
+function usualCommute(){
+  const a = val("commuteMode"), b = val("commuteMode2");
+  if(a && b && a !== b) return a + " + " + b;
+  return a || b || "";
+}
 function buildPayload(){
   const t = targetSplit();
   const rows = state.rows;
@@ -1653,7 +1744,7 @@ function buildPayload(){
     email: val("email"),
     displayName: val("displayName"),
     team: val("team"),
-    usualCommuteMode: val("commuteMode"),
+    usualCommuteMode: usualCommute(),
     targetDistanceKm: round2(t.total),
     targetFormat: FORMATS[state.format].label,
     targetSwimKm: round2(t.swim),
