@@ -395,6 +395,18 @@ body.tab-standings .submitbar,body.tab-mine .submitbar{display:none}
 .todo{background:#fff;border:1.5px dashed var(--line);border-radius:var(--radius-sm);padding:10px 12px;margin-top:10px;font-size:13px;color:var(--muted)}
 .todo b{color:var(--ink)}
 .loaderr{background:#fbeee8;border:1px solid #f0c7b8;color:#8a3311;padding:10px 12px;border-radius:var(--radius-sm);margin:12px 0}
+
+/* announcement banner */
+.announce{display:none}
+.announce.show{display:block}
+.announce-inner{max-width:var(--content-w);margin:0 auto;padding:8px 20px;display:flex;flex-direction:column;gap:6px}
+.announce-item{display:flex;align-items:center;gap:8px;font-size:13px;padding:7px 12px;border-radius:var(--radius-sm);border:1px solid var(--line)}
+.announce-item a{color:inherit;font-weight:700;text-decoration:underline;cursor:pointer}
+.announce-item.vote{background:#fff;color:var(--ink)}
+.announce-item.wq-caution{background:#fdf3dd;border-color:#f0d78c;color:#7a5b06}
+.announce-item.wq-avoid{background:#fbe8ea;border-color:#f0c0c6;color:#8a2334}
+.announce-item .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.announce-item.hide{display:none}
 </style>
 </head>
 <body>
@@ -412,6 +424,13 @@ body.tab-standings .submitbar,body.tab-mine .submitbar{display:none}
     </div>
   </div>
 </header>
+
+<div class="announce" id="announceBar">
+  <div class="announce-inner">
+    <div class="announce-item vote">📣 <span><a href="#" id="announce-vote-link">Please vote on the activities</a> — help rank what's fun, original, and hard.</span></div>
+    <div class="announce-item hide" id="announce-wq"></div>
+  </div>
+</div>
 
 <div id="load-error" class="loaderr" style="display:none;max-width:1200px;margin:14px auto 0"></div>
 
@@ -779,6 +798,13 @@ body.tab-standings .submitbar,body.tab-mine .submitbar{display:none}
 // Google Apps Script Web App endpoint (from project handoff).
 const API_URL = "https://script.google.com/macros/s/AKfycbzJcp-2Xp4TrNmrOMsCl1-eHaBt258EpntCwW3rYGIIhbGhkW7evGJYRxxV-59mV8SH/exec";
 
+// Fallback for categories with no reliable MET/speed curve (see buildMetCurves):
+// how far actual pace is allowed to push an activity's MET away from its
+// compendium value. 0.5x-2x, e.g. a 20km/h ride entered at 40km/h caps at
+// double the nominal MET rather than scaling without bound.
+const MET_PACE_CLAMP = [0.5, 2.0];
+function clamp(v, lo, hi){ return Math.min(hi, Math.max(lo, v)); }
+
 // Canonical triathlon splits — used only to derive discipline PROPORTIONS.
 const FORMATS = {
   olympic: { label:"Olympic", swim:1.5,  bike:40,  run:10   },
@@ -804,6 +830,7 @@ const state = {
   seasons: [],             // from seasons.csv
   awards: [],              // from awards.csv (id/name/description)
   byId: {},                // activity_id -> activity
+  metCurves: {},           // category -> speed/MET curve, see buildMetCurves()
   waterQuality: [],        // from water_quality.csv, raw rows
   wqBySite: {},            // site -> latest E. coli reading
   format: "olympic",
@@ -861,6 +888,7 @@ async function init(){
     state.seasons = seasons;
     state.awards = awards;
     state.byId = Object.fromEntries(state.activities.map(a => [a.activity_id, a]));
+    state.metCurves = buildMetCurves(state.activities);
     state.waterQuality = wq;
     state.wqBySite = buildWaterQualityIndex(wq);
   }catch(err){
@@ -884,12 +912,14 @@ async function init(){
   wireRate();
   wireTabs();
   wireCollapsibles();
+  wireAnnouncements();
   document.body.classList.add("tab-log");
 
   addActivityRow();          // start with one row
   setFormat("olympic", true);
   renderExplorer();
   recompute();
+  renderAnnouncements();
 }
 
 /* ====================== TARGET / FORMAT ====================== */
@@ -1215,6 +1245,98 @@ function updateWqFieldStatus(wrap){
 }
 
 /* ====================== COMPUTE ====================== */
+// Motor-assisted activities decouple speed from physical effort (more assist
+// = faster AND easier), so they're excluded from the pace curves below and
+// never pace-adjusted themselves -- their logged MET always stays at the
+// compendium's flat value for whichever assist level was picked.
+function isAssisted(a){ return /ebike/i.test(a.activity_id); }
+
+// Pool-adjacent-violators: the least-squares fit of `ys` (in the given,
+// fixed order) by a non-decreasing sequence. Used below to smooth
+// effort-per-km into a curve that never dips as speed rises.
+function pava(ys){
+  const stack = []; // blocks of {sum, count, value}, value = sum/count
+  for(const y of ys){
+    let sum = y, count = 1, value = y;
+    while(stack.length && stack[stack.length-1].value > value){
+      const prev = stack.pop();
+      sum += prev.sum; count += prev.count; value = sum/count;
+    }
+    stack.push({sum, count, value});
+  }
+  const out = [];
+  stack.forEach(b=>{ for(let i=0;i<b.count;i++) out.push(b.value); });
+  return out;
+}
+// For each category, builds a speed -> effort-per-km curve from that
+// category's own km-based activities (its different named entries generally
+// being the same underlying activity at different self-selected paces --
+// e.g. "Cycling Leisure" / "to Work" / "Fast"). We curve-fit effort-per-km
+// (MET/speed) rather than MET itself, and force it non-decreasing with speed
+// via isotonic regression (pava, above): the raw compendium numbers are
+// independently-measured categories, not points on one smooth physical
+// curve, so taken as-is they can locally imply a slower pace over the same
+// distance costs *more* total effort than a faster one (cycling's
+// 15->20km/h step is measured as less effort-per-km than 15km/h alone).
+// Smoothing guarantees a faster pace over a fixed distance is never scored
+// as less total effort than a slower one -- including for paces outside the
+// recorded range, since effort-per-km is held flat (not MET, which would
+// let effort keep climbing at an ever-slower crawl) beyond either end.
+//
+// A category is only trusted for this if MET rises monotonically with speed
+// end-to-end *before* smoothing. Some categories (e.g. "water": swimming
+// vs. kayaking vs. SUP) bundle genuinely different activities with unrelated
+// effort-per-speed profiles, where a shared curve would misrepresent effort
+// no matter how it's smoothed -- those fall back to the bounded per-activity
+// linear scale instead (see MET_PACE_CLAMP).
+function buildMetCurves(activities){
+  const byCat = {};
+  activities.forEach(a=>{
+    if(a.unit !== "km" || isAssisted(a)) return;
+    const speed = parseFloat(a.speed_kmh), met = parseFloat(a.met);
+    if(!(speed>0) || !(met>0)) return;
+    if(!byCat[a.category]) byCat[a.category] = [];
+    byCat[a.category].push({speed, met});
+  });
+  const curves = {};
+  Object.keys(byCat).forEach(cat=>{
+    const pts = byCat[cat].sort((x,y)=> x.speed - y.speed);
+    if(pts.length < 2) return;
+    const monotonic = pts.every((p,i)=> i===0 || p.met >= pts[i-1].met - 1e-9);
+    if(!monotonic) return;
+    const phis = pava(pts.map(p=> p.met/p.speed));
+    curves[cat] = pts.map((p,i)=> ({speed:p.speed, phi:phis[i]}));
+  });
+  return curves;
+}
+// Piecewise-linear lookup of effort-per-km, flat-extrapolated past either
+// end (see buildMetCurves for why flat-in-phi, not flat-in-MET, matters),
+// converted back to a MET for the given actual speed.
+function metForSpeed(curve, speedKmh){
+  let phi;
+  if(speedKmh <= curve[0].speed) phi = curve[0].phi;
+  else if(speedKmh >= curve[curve.length-1].speed) phi = curve[curve.length-1].phi;
+  else for(let i=1;i<curve.length;i++){
+    if(speedKmh <= curve[i].speed){
+      const lo = curve[i-1], hi = curve[i];
+      const t = (speedKmh - lo.speed) / (hi.speed - lo.speed);
+      phi = lo.phi + t*(hi.phi - lo.phi);
+      break;
+    }
+  }
+  return phi * speedKmh;
+}
+// Effective MET for a logged row given its actual pace: curve-derived where
+// the category supports it, otherwise a bounded linear scale off the
+// selected activity's own reference speed, otherwise (assisted, or no
+// reference speed) the compendium value unchanged.
+function effectiveMet(a, nominalMet, refSpeed, actualSpeed){
+  if(isAssisted(a) || !(actualSpeed>0)) return nominalMet;
+  const curve = state.metCurves[a.category];
+  if(curve) return metForSpeed(curve, actualSpeed);
+  if(refSpeed>0) return clamp(nominalMet * (actualSpeed/refSpeed), nominalMet*MET_PACE_CLAMP[0], nominalMet*MET_PACE_CLAMP[1]);
+  return nominalMet;
+}
 function computeRow(wrap){
   const actId = wrap.querySelector('[data-role="act"]').value;
   const a = state.byId[actId];
@@ -1227,21 +1349,25 @@ function computeRow(wrap){
   const speed = parseFloat(a.speed_kmh) || 0;
 
   let distanceKm=0, storeys=0, unit=a.unit, calcSpeed="";
+  let met = parseFloat(a.met)||0;
   if(a.unit === "km"){
     distanceKm = primary;
     if(!(time>0)) time = speed>0 ? (distanceKm/speed*60) : 0;   // derive from speed
-    if(time>0) calcSpeed = (distanceKm/(time/60));
+    if(time>0){
+      calcSpeed = (distanceKm/(time/60));
+      met = effectiveMet(a, met, speed, calcSpeed);
+    }
   } else if(a.unit === "storeys"){
     storeys = primary;
     time = time>0 ? time : 0;
   } else { // minutes
     time = time>0 ? time : 0;
   }
-  const metMin = (parseFloat(a.met)||0) * (time||0);
+  const metMin = met * (time||0);
   return {
     wrap, activity:a, category:a.category,
     distanceKm, storeys, unit,
-    timeMin: time||0, metMin,
+    timeMin: time||0, metMin, met,
     fun: parseFloat(a.fun_factor)||0,
     orig: parseFloat(a.originality_factor)||0,
     calcSpeed,
@@ -1299,7 +1425,10 @@ function updateRowMeta(wrap, r){
   const meta = wrap.querySelector('[data-role="meta"]');
   if(!r || (r.metMin===0 && r.distanceKm===0 && r.storeys===0)){ meta.classList.add("hide"); return; }
   meta.classList.remove("hide");
-  const bits = [`MET ${r.activity.met}`, `${r.timeMin.toFixed(1)} min`, `${Math.round(r.metMin)} MET·min`];
+  const metLabel = Math.abs(r.met - (parseFloat(r.activity.met)||0)) > 0.05
+    ? `MET ${r.met.toFixed(1)} (pace-adjusted from ${r.activity.met})`
+    : `MET ${r.activity.met}`;
+  const bits = [metLabel, `${r.timeMin.toFixed(1)} min`, `${Math.round(r.metMin)} MET·min`];
   if(r.unit==="km" && r.calcSpeed) bits.push(`${(+r.calcSpeed).toFixed(1)} km/h`);
   if(r.unit==="storeys") bits.push(`${r.storeys} storeys`);
   bits.push(`fun ${r.fun} · orig ${r.orig}`);
@@ -1432,6 +1561,50 @@ function updateWqTooltipDirections(){
 }
 function wireWaterQuality(){
   document.getElementById("wqSearch").addEventListener("input", renderWaterQuality);
+}
+/* ====================== ANNOUNCEMENTS ====================== */
+// wireCollapsible's "toggle" listener already lazy-inits the map/data and
+// scrolls the section into view the first time a details element opens, so
+// setting .open here (when it isn't already) reuses that exact path.
+function openWaterQualityPanel(){
+  selectTab("log");
+  const d = document.getElementById("wqDetails");
+  if(!d.open) d.open = true; else d.scrollIntoView({behavior:"smooth", block:"start"});
+}
+function openRatePanel(){
+  selectTab("standings");
+  const d = document.getElementById("rateDetails");
+  if(!d.open) d.open = true; else d.scrollIntoView({behavior:"smooth", block:"start"});
+}
+function wireAnnouncements(){
+  document.getElementById("announce-vote-link").addEventListener("click", e=>{
+    e.preventDefault(); openRatePanel();
+  });
+}
+// Flags any site whose latest reading is caution/avoid so it's visible without
+// having to open (and lazy-init the map inside) the water-quality panel.
+function renderAnnouncements(){
+  const bar = document.getElementById("announceBar");
+  const wqItem = document.getElementById("announce-wq");
+  const flagged = Object.values(state.wqBySite)
+    .map(e => ({...e, st: wqStatus(e.value)}))
+    .filter(e => e.st.cls === "caution" || e.st.cls === "avoid")
+    .sort((a,b)=> b.value - a.value);
+  if(flagged.length){
+    const worst = flagged.some(e=>e.st.cls==="avoid") ? "avoid" : "caution";
+    const label = worst === "avoid" ? "Avoid" : "Caution";
+    const names = flagged.map(e=> `${esc(e.site)} (${Math.round(e.value)} cfu/100mL)`).join(", ");
+    wqItem.className = "announce-item wq-" + worst;
+    wqItem.innerHTML = `<span class="dot" style="background:${wqColor(worst)}"></span>` +
+      `<span>Water quality — ${label}: ${names}. <a href="#" id="announce-wq-link">See map</a></span>`;
+    document.getElementById("announce-wq-link").addEventListener("click", e=>{
+      e.preventDefault(); openWaterQualityPanel();
+    });
+  } else {
+    wqItem.className = "announce-item hide";
+    wqItem.innerHTML = "";
+  }
+  bar.classList.add("show");
 }
 function renderWaterQuality(){
   const entries = Object.values(state.wqBySite);
@@ -1797,7 +1970,7 @@ function buildPayload(){
       distance: r.unit==="storeys" ? r.storeys : (r.unit==="minutes" ? 0 : round2(r.distanceKm)),
       distanceUnit: r.unit,
       timeMinutes: round1(r.timeMin),
-      met: parseFloat(r.activity.met)||0,
+      met: round1(r.met),
       metMinutes: round1(r.metMin),
       funFactor: r.fun,
       originalityFactor: r.orig,

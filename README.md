@@ -68,6 +68,8 @@ To exercise the Functions + D1 locally, use `npx wrangler pages dev .` instead.
 
 ## Layout
 
+Above the tabs, an **announcement banner** always shows a nudge to rate activities (jumps to Standings → *Rate & rank activities*), plus — only when relevant — a water-quality flag if any site's latest reading is Caution/Avoid (jumps to Log a commute → *Water quality*). Both are computed client-side in `renderAnnouncements()`/`wireAnnouncements()` (`index.html`) from the same `wqBySite` index the water-quality map uses; there's no separate backend call.
+
 The UI is organized into three tabs plus an always-available feedback panel:
 
 - **Log a commute** — the core flow: **1 About you** (email, name, team, and *usual commute* as two dropdowns — a primary mode plus an optional second leg, e.g. "transit + walk"), **2 Challenge** (distance + format + target-split bars), **3 Activities** (the legs you actually did), **4 Summary**. Route sketch, activity explorer, and water quality are grouped under *Optional tools*.
@@ -94,10 +96,20 @@ There is no password. A person's **email is their identity** — `participants` 
 | `storeys` | storeys + time | time is required | storeys count |
 | `minutes` | time only | — | (no distance) |
 
-- **MET·minutes** = `met` × active minutes. Primary effort metric.
+- **MET·minutes** = effective `met` × active minutes. Primary effort metric.
 - **Completion %** = total logged distance ÷ target distance × 100.
 - **Fun / Originality scores** on a submission = mean of the activities' `fun_factor` / `originality_factor`.
 - Only `status = active` rows are shown. To add or retune an activity, edit the CSV — no code change.
+
+### Pace-adjusted effort
+
+For `km`-unit activities, the "effective" MET used in MET·minutes is **not** always the CSV's flat `met` value — it's adjusted for how the actual pace (distance ÷ time entered) compares to the activity's own `speed_kmh`, so a faster commute over the same distance never scores as *less* total effort than a slower one for the same activity.
+
+- **Categories with a genuine pace continuum** (currently `walking`, `cycling`, `wheels` — i.e. categories whose several activities are really the same movement at different self-selected paces, e.g. "Cycling Leisure" / "to Work" / "Fast") get a speed → MET curve built from that category's own CSV rows. The curve is fit in effort-per-km space (MET ÷ speed) and isotonically smoothed (`pava()` in `index.html`) to be non-decreasing with speed, then interpolated — flat past either end — for the row's actual pace. This is necessary because the Adult Compendium's published MET values are independently-measured per activity, not points on one smooth physical curve, so taken raw they can locally imply a slower pace costs *more* effort than a faster one.
+- A category is only trusted as a continuum if its **raw** MET already rises end-to-end with speed. Categories that bundle unrelated activities (`water`: swimming vs. kayaking vs. SUP; `winter`: skiing vs. snowshoeing vs. skating) fail that check and fall back to a simple linear scale off the picked activity's own reference pace, clamped to 0.5×–2× its nominal MET (`MET_PACE_CLAMP`).
+- Motor-assisted activities (`ebike_*`) are excluded from all of this — assist decouples speed from physical effort, so they always score at their flat compendium MET regardless of pace.
+
+A row whose effective MET differs from the CSV value shows "pace-adjusted" in its meta line; the adjusted value (not the raw CSV one) is what's submitted as `met`/`metMinutes` in the API payload.
 
 Other CSVs (`categories`, `seasons`, `awards`, `leaderboard_metrics`, `activity_aliases`) are read the same way. `awards.csv` supplies award names/descriptions (the winner is computed in `functions/api/awards.js`). `data/ratings.csv` held the *seed* fun/originality design defaults — it is **not** loaded into D1; live community ratings start fresh from real votes.
 
@@ -142,7 +154,7 @@ Payload keys are **camelCase**:
 }
 ```
 
-`email` is required. `usualCommuteMode` is the combined primary + optional second leg (e.g. `"transit + walk"`). If you rename a field, rename it on both the client (`buildPayload` in `index.html`) and the Function.
+`email` is required. `usualCommuteMode` is the combined primary + optional second leg (e.g. `"transit + walk"`). Per-activity `met`/`metMinutes` are the *effective*, pace-adjusted values (see "Pace-adjusted effort" above), not necessarily the CSV's flat `met`. If you rename a field, rename it on both the client (`buildPayload` in `index.html`) and the Function.
 
 ## Awards
 
