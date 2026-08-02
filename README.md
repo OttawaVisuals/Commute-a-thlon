@@ -1,33 +1,88 @@
 # Commute-a-thlon
 
-A data-driven active-commuting challenge. Log real commuting activities (walk, bike, ski, kayak, stairs…), draw your route on a map, and submit against a triathlon-style target. Metrics come from the 2024 Adult Compendium of Physical Activities; all activity data lives in CSV, not code.
+A data-driven active-commuting challenge. Log real commuting activities (walk, bike, ski, kayak, stairs…), draw your route on a map, and submit against a triathlon-style target. Rate how fun/original/hard each activity is, climb the leaderboard, and win awards. Metrics come from the 2024 Adult Compendium of Physical Activities; all activity metadata lives in CSV, not code.
 
-Live app: served from `index.html` via GitHub Pages.
+Live app: `index.html` served from Cloudflare Pages, with dynamic features backed by Cloudflare Pages Functions + a D1 (SQLite) database.
 
 ## Architecture
 
 ```
-GitHub Pages (static)
-  └─ index.html  ──fetch()──▶  data/*.csv        (activity metadata, source of truth)
-        │
-        └──POST (no-cors)────▶  Google Apps Script  ──▶  Google Sheets
-                                 doPost(e)               Submissions + Activities (+ Participants)
+Cloudflare Pages (git-connected, native deploy — no build step)
+  ├─ index.html ──fetch()──▶ data/*.csv           (activity metadata, source of truth)
+  │
+  └─ functions/api/*.js  ──▶  D1 database (binding: DB)
+       POST /api/submit        writes submissions + activities, upserts participants
+       GET  /api/leaderboard   aggregated standings
+       GET  /api/me?email=     one person's profile + stats + history
+       POST /api/rate          community rating (1 vote per person per activity)
+       GET  /api/ratings       aggregate activity rankings
+       GET  /api/awards        current award holders
+       POST /api/feedback      free-text feedback
 ```
 
-No build step, no framework, no bundler. One HTML file plus the CSVs. Leaflet and Google Fonts load from CDN.
+No framework, no bundler, no build step. One HTML file, the CSVs, and a handful of Pages Functions. Leaflet and Google Fonts load from CDN. Every dynamic call is same-origin JSON with a real, readable response — there is no `no-cors` workaround.
 
-## Run it
+> **History:** this app previously used Google Apps Script + Google Sheets as its backend (`apps-script/Code.gs`, a `no-cors` optimistic POST). That backend has been fully retired in favour of Cloudflare D1. The Apps Script copy is kept in the repo only as a dormant reference; nothing in the app reads or writes Sheets anymore.
 
-**GitHub Pages:** push to `main`, enable Pages (Settings → Pages → deploy from `main`, root). The app fetches `./data/*.csv` relatively, so `index.html` and `data/` must stay side by side.
+## Deploy
 
-**Locally:** you need an HTTP server — `fetch()` of the CSVs fails on `file://`.
+The site is a **git-connected Cloudflare Pages project** (created via *Workers & Pages → Create → Pages → Connect to Git*, **not** the Workers/Import path). Pushing to `main` triggers a native Pages deployment that:
+
+- uploads the repo root as static assets (`pages_build_output_dir = "."` in `wrangler.toml`),
+- auto-detects `functions/` and bundles each file as a route under `/api/*`,
+- applies the D1 binding declared in `wrangler.toml`.
+
+There is **no build command, no deploy command, and no API token** — the native git integration handles it. (A `wrangler.toml` with a `[[d1_databases]]` binding does *not* require Workers Builds; if the dashboard ever forces a mandatory "Deploy command" field, the project was created via the wrong flow — recreate it through Pages → Connect to Git.)
+
+### D1 setup
+
+`wrangler.toml` binds the database as `DB`:
+
+```toml
+name = "commute-a-thlon"
+pages_build_output_dir = "."
+
+[[d1_databases]]
+binding = "DB"
+database_name = "commute-a-thlon-feedback"
+database_id = "<your-d1-database-id>"
+```
+
+Create the tables once by running `d1/schema.sql` against the database — either with wrangler:
+
 ```bash
-python3 -m http.server 8000   # then open http://localhost:8000
+npx wrangler d1 execute commute-a-thlon-feedback --remote --file=d1/schema.sql
 ```
+
+or by pasting the statements into the Cloudflare dashboard's **D1 → Console** tab (one statement at a time, without the leading comments — the console rejects comment-only input with "Requests without any query are not supported"). All statements use `IF NOT EXISTS`, so re-running is safe.
+
+### Run it locally
+
+The static UI needs an HTTP server (CSV `fetch()` fails on `file://`), and this renders every panel *except* the D1-backed ones (leaderboard, awards, ratings, my-entries, submit):
+
+```bash
+python -m http.server 8000   # then open http://localhost:8000
+```
+
+To exercise the Functions + D1 locally, use `npx wrangler pages dev .` instead.
+
+## Layout
+
+The UI is organized into three tabs plus an always-available feedback panel:
+
+- **Log a commute** — the core flow: **1 About you** (email, name, team, and *usual commute* as two dropdowns — a primary mode plus an optional second leg, e.g. "transit + walk"), **2 Challenge** (distance + format + target-split bars), **3 Activities** (the legs you actually did), **4 Summary**. Route sketch, activity explorer, and water quality are grouped under *Optional tools*.
+- **Standings** — leaderboard, awards grid, and community activity rankings.
+- **My entries** — email-as-identity lookup of your own profile, totals, and submission history.
+
+## Identity (email-as-identity)
+
+There is no password. A person's **email is their identity** — `participants` is keyed by email, submissions and ratings carry it, and `GET /api/me?email=` returns that person's data. This is deliberately lightweight for a friendly challenge; anyone who types an email can view that person's entries. A verified magic-link login is a possible future upgrade.
 
 ## Data model
 
-`data/activities.csv` is the source of truth. Nothing about an activity is hardcoded. Columns:
+### CSV (activity metadata — source of truth)
+
+`data/activities.csv` defines every activity; nothing about an activity is hardcoded. Columns:
 
 `activity_id, category, name, met, speed_kmh, unit, fun_factor, originality_factor, difficulty_factor, is_commute_friendly, source, status`
 
@@ -41,10 +96,22 @@ python3 -m http.server 8000   # then open http://localhost:8000
 
 - **MET·minutes** = `met` × active minutes. Primary effort metric.
 - **Completion %** = total logged distance ÷ target distance × 100.
-- **Fun / Originality scores** = mean of `fun_factor` / `originality_factor` across logged activities.
+- **Fun / Originality scores** on a submission = mean of the activities' `fun_factor` / `originality_factor`.
 - Only `status = active` rows are shown. To add or retune an activity, edit the CSV — no code change.
 
-Other CSVs (`categories`, `seasons`, `awards`, `leaderboard_metrics`, `ratings`, `activity_aliases`) are read the same way. `awards.csv` and `leaderboard_metrics.csv` are consumed by the read-back features listed under *Not yet wired*.
+Other CSVs (`categories`, `seasons`, `awards`, `leaderboard_metrics`, `activity_aliases`) are read the same way. `awards.csv` supplies award names/descriptions (the winner is computed in `functions/api/awards.js`). `data/ratings.csv` held the *seed* fun/originality design defaults — it is **not** loaded into D1; live community ratings start fresh from real votes.
+
+### D1 (dynamic state)
+
+Schema in `d1/schema.sql`:
+
+| table | holds |
+|---|---|
+| `participants` | one row per person, keyed by `email` (+ display name, team, `usual_commute_mode`) |
+| `submissions` | one row per logged commute effort (totals, target, drawn distances, notes) |
+| `activities` | one row per activity leg, linked by `submission_id` |
+| `ratings` | community votes: one row per `(email, activity_id)`, 1–10 on fun/originality/difficulty |
+| `feedback` | free-text feedback messages |
 
 ## Target
 
@@ -52,13 +119,13 @@ Pick a **format** (Olympic or Ironman) and a **challenge distance**. The format 
 
 ## Submission contract
 
-On submit, the client POSTs one JSON body. The Apps Script (`doPost`) writes **one row to `Submissions`** and **one row per activity to `Activities`**, and generates `SubmissionID`, `Timestamp`, `Year`, `Month`, `Week` server-side (don't send them).
+On submit the client POSTs one JSON body to `/api/submit`. The Function inserts **one `submissions` row + one `activities` row per activity**, and **upserts the `participant`** (keyed by email). The `submissions.id` is auto-generated; the response is `{ success, submissionId }`.
 
-Payload keys are **camelCase** and must match `doPost` exactly:
+Payload keys are **camelCase**:
 
 ```jsonc
 {
-  "displayName": "", "team": "", "usualCommuteMode": "",
+  "email": "", "displayName": "", "team": "", "usualCommuteMode": "",
   "targetDistanceKm": 0, "targetFormat": "Olympic",
   "targetSwimKm": 0, "targetBikeKm": 0, "targetRunKm": 0,
   "drawnSwimKm": 0, "drawnBikeKm": 0, "drawnRunKm": 0,
@@ -75,28 +142,16 @@ Payload keys are **camelCase** and must match `doPost` exactly:
 }
 ```
 
-If you rename a field on either side, rename it on both. The endpoint is set in one place near the top of the script block in `index.html`:
+`email` is required. `usualCommuteMode` is the combined primary + optional second leg (e.g. `"transit + walk"`). If you rename a field, rename it on both the client (`buildPayload` in `index.html`) and the Function.
 
-```js
-const API_URL = "https://script.google.com/macros/s/.../exec";
-```
+## Awards
 
-### The no-cors caveat (important)
+`data/awards.csv` lists 12 awards. `GET /api/awards` computes the current holder for **10** of them from D1 aggregates (MET Monster, Champion, Fun Machine, Most Original, Daily Grinder, Office Tower Legend, Winter Warrior, Canal Creature, Wheel Wizard, Human Hybrid). Two are intentionally left uncomputed because their rules are ambiguous:
 
-Apps Script web apps don't return CORS headers, so the browser can't read the response of a cross-origin POST. The client therefore sends a *simple* request (`Content-Type: text/plain`, `mode: "no-cors"`) and treats submission as **optimistic** — the write succeeds but the client can't see success/failure or the returned `SubmissionID`. The UI says as much and asks you to confirm the row in the sheet. On a network-level failure the full payload is logged to the console so nothing is lost.
+- **Speed Demon** ("fastest total commute time") — undefined at which distance / what counts as "fast".
+- **Personal Best** ("largest improvement vs previous average") — needs a defined baseline.
 
-If you want true confirmation in the browser, the realistic options are a proxy that adds CORS headers, or accepting the opaque response as-is (current behaviour).
-
-## Not yet wired
-
-Leaderboards, awards, personal records, trends, and community ratings all need to **read data back** from the sheet — the client doesn't do this yet, but the backend now can. `apps-script/Code.gs` has a `doGet(e)` that returns a sheet's rows as JSON (e.g. `?sheet=Participants`), whitelisted to `Submissions`/`Activities`/`ActivityRatings`/`Participants`, falling back to the health-check response with no `sheet` param. It's deployed and confirmed working, including a plain cross-origin `fetch()` GET (no CORS issue — that only affected the POST path, which is why submission still uses the `no-cors` workaround). Once the client fetches and renders it, this unlocks:
-
-- **Leaderboards** — driven by `leaderboard_metrics.csv` + `awards.csv` against sheet rows.
-- **Personal records** — from the `Participants` sheet (already maintained by the script).
-- **Trends** — grouped by the `Year` / `Month` / `Week` columns.
-- **Community ratings** — vote UI writing to `ActivityRatings`; optional export back into `ratings.csv`.
-
-The client and CSVs are structured for these; they're intentionally left as a TODO rather than stubbed with fake data.
+They render as "Not yet awarded" until the rules are pinned down.
 
 ## Water quality data
 
@@ -111,20 +166,30 @@ Not currently pulled in: Carleton's [Rideau River water quality testing](https:/
 
 To run the fetch locally: `pip install -r scripts/requirements.txt && python scripts/fetch_water_quality.py`.
 
-This data isn't wired into the UI yet — see the Not yet wired section above; water quality display is next.
-
 ## Repo layout
 
 ```
 Commute-a-thlon/
-├── index.html                 # the app
+├── index.html                 # the app (single file: markup + styles + script)
+├── wrangler.toml              # Pages config + D1 binding (DB)
+├── functions/
+│   └── api/
+│       ├── submit.js           # POST /api/submit
+│       ├── leaderboard.js      # GET  /api/leaderboard
+│       ├── me.js               # GET  /api/me?email=
+│       ├── rate.js             # POST /api/rate
+│       ├── ratings.js          # GET  /api/ratings
+│       ├── awards.js           # GET  /api/awards
+│       └── feedback.js         # POST /api/feedback
+├── d1/
+│   └── schema.sql              # D1 tables (participants, submissions, activities, ratings, feedback)
 ├── data/
 │   ├── activities.csv          # source of truth for activity metadata
 │   ├── categories.csv
 │   ├── seasons.csv
-│   ├── awards.csv
+│   ├── awards.csv              # award names/descriptions (winners computed in awards.js)
 │   ├── leaderboard_metrics.csv
-│   ├── ratings.csv
+│   ├── ratings.csv             # seed rating defaults (not loaded into D1)
 │   ├── activity_aliases.csv
 │   └── water_quality.csv       # auto-updated, see "Water quality data" above
 ├── scripts/
@@ -132,7 +197,5 @@ Commute-a-thlon/
 ├── .github/workflows/
 │   └── update-water-quality.yml
 └── apps-script/
-    └── Code.gs                 # doPost/doGet (deployed as a Web App)
+    └── Code.gs                 # DORMANT — retired Google Sheets backend, kept for reference only
 ```
-
-The Apps Script lives in the Google project; keep a copy under `apps-script/Code.gs` so the payload contract and the sheet columns stay reviewable alongside the client.
