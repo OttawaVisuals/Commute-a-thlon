@@ -132,9 +132,13 @@ Schema in `d1/schema.sql`:
 | `feedback` | free-text feedback messages |
 | `rate_limits` | operational only — fixed-window per-IP request counters for the write endpoints; holds no user data |
 
-## Target
+## Target & the personal goal
 
-Pick a **format** (Olympic or Ironman) and a **challenge distance**. The format only sets the swim/bike/run *proportions* (Olympic 1.5/40/10, Ironman 3.86/180/42.2); those proportions are applied to your distance to produce the three discipline targets. Choosing a format prefills the distance with the canonical total, which you can override with your real commute distance.
+Pick a **format** (Olympic or Ironman) and a **challenge distance**. The format only sets the swim/bike/run *proportions* (Olympic 1.5/40/10, Ironman 3.86/180/42.2); those proportions are applied to your distance to produce the three discipline targets. Your **usual commute distance** (the one-way sum of the two legs in *About you*) **prefills the challenge distance**, and stays editable — typing your own value stops the auto-fill (`state.distanceDirty` in `index.html`), so someone who lives far can dial the goal down to something achievable.
+
+The distance is converted to a **triathlon-equivalent effort target** in Effort (MET·min) at assumed reference paces (`targetMETSplit()`). The Summary panel's headline — *"You vs your commute"* — is your logged Effort ÷ that target: hit **100%** and you've matched (or beaten) the effort your usual commute represents. This personal goal is deliberately separate from the competitive **leaderboard**, which stays multi-metric (distance / completion / effort) so every commute profile has a board it can top.
+
+**Terminology:** the UI says **Effort (MET·min)** for total volume (intensity × time) and **Intensity (MET)** for the per-activity rate, so the raw units never appear unexplained.
 
 ## Submission contract
 

@@ -323,6 +323,21 @@ details.panel[open] > summary.phead .summary-toggle{
 .completion.over{background:#eaf8ee}
 .completion.over .v{color:var(--ok)}
 
+/* personal goal card — "you vs your commute" (effort completion) */
+.goalcard{border:1.5px solid var(--line);border-left:4px solid var(--bike);border-radius:var(--radius);
+  background:var(--surface);padding:12px 14px;margin-bottom:12px}
+.goal-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.goal-title{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.goal-pct{font-family:"Space Grotesk",sans-serif;font-size:30px;font-weight:700;line-height:1;color:var(--title)}
+.goal-track{position:relative;height:14px;background:var(--paper);border:1.5px solid var(--line);
+  border-radius:var(--radius-pill);overflow:hidden;margin:8px 0 6px}
+.goal-fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--grad-tri);
+  border-radius:var(--radius-pill);transition:width .3s ease}
+.goal-sub{font-size:12px;color:var(--muted);line-height:1.35}
+.goalcard.mid .goal-pct{color:var(--gold)}
+.goalcard.over{border-left-color:var(--ok)}
+.goalcard.over .goal-pct{color:var(--ok)}
+
 /* freestyle explorer */
 .explorer-tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .explorer-tools input,.explorer-tools select{width:auto;min-width:140px;flex:1}
@@ -585,16 +600,20 @@ body.tab-standings .submitbar,body.tab-mine .submitbar{display:none}
   <section class="panel panel-side">
     <div class="phead-vert" style="--pa:var(--title)"><span class="vert-label">4 · Summary</span></div>
     <div class="pbody">
-      <div class="instr">
-        <div class="cell completion wide" id="cell-completion">
-          <div class="k">Completion vs target</div>
-          <div class="v" id="m-completion">—</div>
+      <div class="goalcard" id="goalCard">
+        <div class="goal-head">
+          <span class="goal-title">You vs your commute<button type="button" class="info-btn" aria-label="About this goal">?<span class="tip" role="tooltip">Your target is the triathlon-equivalent effort of your usual commute distance. Log active commuting until you hit 100% — that means you've matched (or beaten) the effort your normal commute represents.</span></button></span>
+          <span class="goal-pct" id="goal-pct">—</span>
         </div>
-        <div class="cell"><div class="k">Effort</div><div class="v" id="m-met">0<small> MET·min</small></div></div>
+        <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
+        <div class="goal-sub" id="goal-sub">Log your commute to see how your effort compares to your usual one.</div>
+      </div>
+      <div class="instr">
+        <div class="cell"><div class="k">Distance goal</div><div class="v" id="m-completion">—</div></div>
+        <div class="cell"><div class="k">Effort (MET·min)</div><div class="v" id="m-met">0</div></div>
+        <div class="cell"><div class="k">Distance</div><div class="v" id="m-dist">0<small> km</small></div></div>
         <div class="cell"><div class="k">Activities</div><div class="v" id="m-count">0</div></div>
         <div class="cell"><div class="k">Active min</div><div class="v" id="m-active">0</div></div>
-        <div class="cell"><div class="k">Elapsed min</div><div class="v" id="m-elapsed">0</div></div>
-        <div class="cell"><div class="k">Distance</div><div class="v" id="m-dist">0<small> km</small></div></div>
         <div class="cell"><div class="k">Storeys</div><div class="v" id="m-storeys">0</div></div>
         <div class="cell"><div class="k">Fun score</div><div class="v" id="m-fun">—</div></div>
         <div class="cell"><div class="k">Originality</div><div class="v" id="m-orig">—</div></div>
@@ -647,14 +666,14 @@ body.tab-standings .submitbar,body.tab-mine .submitbar{display:none}
         <input id="expSearch" placeholder="Search activities…" />
         <select id="expCat"><option value="">All categories</option></select>
         <div class="field" style="margin:0;display:flex;gap:6px;align-items:end">
-          <div><label for="expMin" style="margin-bottom:3px">Minutes<button type="button" class="info-btn" aria-label="What is this?">?<span class="tip" role="tooltip">MET·min = MET × minutes, using the value in the Minutes box. Data-driven from data/activities.csv.</span></button></label><input id="expMin" type="number" min="0" step="1" value="30" style="width:90px" /></div>
+          <div><label for="expMin" style="margin-bottom:3px">Minutes<button type="button" class="info-btn" aria-label="What is this?">?<span class="tip" role="tooltip">Effort (MET·min) = intensity (MET) × minutes, using the value in the Minutes box. Data-driven from data/activities.csv.</span></button></label><input id="expMin" type="number" min="0" step="1" value="30" style="width:90px" /></div>
         </div>
       </div>
       <div style="overflow-x:auto">
         <table class="exp">
           <thead><tr>
-            <th>Activity</th><th>Category</th><th class="num">MET</th><th class="num">km/h</th>
-            <th class="num">Fun</th><th class="num">Orig.</th><th class="num">MET·min</th>
+            <th>Activity</th><th>Category</th><th class="num">Intensity (MET)</th><th class="num">km/h</th>
+            <th class="num">Fun</th><th class="num">Orig.</th><th class="num">Effort (MET·min)</th>
           </tr></thead>
           <tbody id="expBody"></tbody>
         </table>
@@ -788,7 +807,7 @@ body.tab-standings .submitbar,body.tab-mine .submitbar{display:none}
       <div style="overflow-x:auto">
         <table class="exp lb" id="meTable" style="display:none">
           <thead><tr>
-            <th>Date</th><th>Format</th><th class="num">Distance (km)</th><th class="num">MET·min</th><th class="num">Completion</th><th class="num">Activities</th>
+            <th>Date</th><th>Format</th><th class="num">Distance (km)</th><th class="num">Effort (MET·min)</th><th class="num">Completion</th><th class="num">Activities</th>
           </tr></thead>
           <tbody id="meBody"></tbody>
         </table>
@@ -1030,7 +1049,23 @@ function setFormat(fmt, prefillIfEmpty){
   renderTargetBars();
 }
 function wireTargetInputs(){
-  document.getElementById("targetDistance").addEventListener("input", ()=>{ renderTargetBars(); recompute(); });
+  document.getElementById("targetDistance").addEventListener("input", ()=>{
+    state.distanceDirty = true;   // user took control — stop auto-prefilling
+    renderTargetBars(); recompute();
+  });
+  // Usual-commute legs (one-way total) prefill the challenge distance until the
+  // user types their own value.
+  ["commuteKm1","commuteKm2"].forEach(id=>
+    document.getElementById(id).addEventListener("input", prefillDistanceFromCommute));
+}
+function prefillDistanceFromCommute(){
+  if(state.distanceDirty) return;
+  const km = (parseFloat(val("commuteKm1"))||0) + (parseFloat(val("commuteKm2"))||0);
+  if(km > 0){
+    document.getElementById("targetDistance").value = round2(km);
+    renderTargetBars();
+    recompute();
+  }
 }
 function targetSplit(){
   const f = FORMATS[state.format];
@@ -1482,23 +1517,38 @@ function recompute(){
   const origAvg = count ? sum(rows.map(r=>r.orig))/count : null;
   const target = targetSplit();
   const completion = target.total>0 ? (totalDist/target.total*100) : null;
+  const effortTarget = targetMETSplit().total;
+  const effortPct = effortTarget>0 && metMin>0 ? (metMin/effortTarget*100) : null;
 
   // paint instrument panel
-  document.getElementById("m-met").innerHTML = Math.round(metMin).toLocaleString() + "<small> MET·min</small>";
+  setText("m-met", Math.round(metMin).toLocaleString());
   setText("m-count", count);
   setText("m-active", Math.round(activeMin).toLocaleString());
-  setText("m-elapsed", Math.round(elapsed).toLocaleString());
   document.getElementById("m-dist").innerHTML = totalDist.toFixed(2) + "<small> km</small>";
   setText("m-storeys", Math.round(totalStoreys).toLocaleString());
   setText("m-fun", funAvg==null ? "—" : funAvg.toFixed(1));
   setText("m-orig", origAvg==null ? "—" : origAvg.toFixed(1));
-  const compCell = document.getElementById("cell-completion");
-  if(completion==null){ setText("m-completion","—"); compCell.classList.remove("over","mid","low"); }
-  else{
-    setText("m-completion", completion.toFixed(0) + "%");
-    compCell.classList.toggle("over", completion>=100);
-    compCell.classList.toggle("mid", completion>=40 && completion<100);
-    compCell.classList.toggle("low", completion<40);
+  setText("m-completion", completion==null ? "—" : completion.toFixed(0) + "%");
+
+  // headline goal: your logged effort vs your commute's effort equivalent
+  const goalCard = document.getElementById("goalCard");
+  const goalFill = document.getElementById("goal-fill");
+  if(effortPct==null){
+    setText("goal-pct", "—");
+    goalFill.style.width = "0%";
+    setText("goal-sub", "Log your commute to see how your effort compares to your usual one.");
+    goalCard.classList.remove("over","mid","low");
+  }else{
+    const done = Math.round(metMin).toLocaleString();
+    const tgt = Math.round(effortTarget).toLocaleString();
+    setText("goal-pct", effortPct.toFixed(0) + "%");
+    goalFill.style.width = Math.min(100, effortPct) + "%";
+    setText("goal-sub", effortPct>=100
+      ? `${done} of ${tgt} Effort (MET·min) — you've out-efforted your usual commute! 🎉`
+      : `${done} of ${tgt} Effort (MET·min) — hit 100% to out-effort your usual commute.`);
+    goalCard.classList.toggle("over", effortPct>=100);
+    goalCard.classList.toggle("mid", effortPct>=40 && effortPct<100);
+    goalCard.classList.toggle("low", effortPct<40);
   }
   setText("activity-count-badge", count + " logged");
 
@@ -1515,9 +1565,9 @@ function updateRowMeta(wrap, r){
   if(!r || (r.metMin===0 && r.distanceKm===0 && r.storeys===0)){ meta.classList.add("hide"); return; }
   meta.classList.remove("hide");
   const metLabel = Math.abs(r.met - (parseFloat(r.activity.met)||0)) > 0.05
-    ? `MET ${r.met.toFixed(1)} (pace-adjusted from ${r.activity.met})`
-    : `MET ${r.activity.met}`;
-  const bits = [metLabel, `${r.timeMin.toFixed(1)} min`, `${Math.round(r.metMin)} MET·min`];
+    ? `Intensity (MET) ${r.met.toFixed(1)} (pace-adjusted from ${r.activity.met})`
+    : `Intensity (MET) ${r.activity.met}`;
+  const bits = [metLabel, `${r.timeMin.toFixed(1)} min`, `Effort (MET·min) ${Math.round(r.metMin)}`];
   if(r.unit==="km" && r.calcSpeed) bits.push(`${(+r.calcSpeed).toFixed(1)} km/h`);
   if(r.unit==="storeys") bits.push(`${r.storeys} storeys`);
   bits.push(`fun ${r.fun} · orig ${r.orig}`);
@@ -1778,10 +1828,10 @@ async function loadLeaderboard(){
 }
 // Award values carry different units; format each by award_id.
 const AWARD_UNITS = {
-  met_monster:"MET·min", commute_athlon_champion:"%", fun_machine:"fun", most_original:"orig",
+  met_monster:"Effort (MET·min)", commute_athlon_champion:"%", fun_machine:"fun", most_original:"orig",
   daily_grinder:"commutes", office_tower_legend:"storeys", winter_warrior:"km",
   water_creature:"km", wheel_wizard:"km", human_hybrid:"types",
-  speed_demon:"km/h", personal_best:"MET·min gain",
+  speed_demon:"km/h", personal_best:"Effort (MET·min) gain",
 };
 async function loadAwards(){
   const statusEl = document.getElementById("awardsStatus");
@@ -1901,7 +1951,7 @@ function renderMe(data){
        <div class="me-stats mono">
          <span><b>${Math.round(Number(s.submission_count)||0)}</b> commutes</span>
          <span><b>${(Number(s.total_distance_km)||0).toFixed(2)}</b> km</span>
-         <span><b>${Math.round(Number(s.total_met_minutes)||0)}</b> MET·min</span>
+         <span><b>${Math.round(Number(s.total_met_minutes)||0)}</b> Effort (MET·min)</span>
          <span>best <b>${(Number(s.best_completion_percent)||0).toFixed(0)}%</b></span>
        </div>
      </div>`;
