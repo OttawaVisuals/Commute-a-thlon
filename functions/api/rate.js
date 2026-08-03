@@ -4,6 +4,8 @@
 // A missing dimension preserves the previous value rather than wiping it.
 // Requires a D1 database bound as DB (configured in wrangler.toml).
 
+import { rateLimit, tooMany } from "./_lib.js";
+
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const clamp10 = (v) => {
   const n = Number(v);
@@ -11,6 +13,9 @@ const clamp10 = (v) => {
 };
 
 export async function onRequestPost({ request, env }) {
+  const rl = await rateLimit(env, request, { endpoint: "rate", limit: 100, windowSec: 600 });
+  if (!rl.ok) return tooMany(rl.retryAfter);
+
   let data;
   try {
     data = await request.json();

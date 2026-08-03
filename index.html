@@ -4,8 +4,20 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Commute-a-thlon</title>
+<meta name="description" content="A data-driven active-commuting challenge. Log real commutes — walk, bike, ski, paddle, stairs — draw your route, climb the leaderboard, and win awards." />
 <link rel="icon" type="image/svg+xml" href="commute-a-thlon-icon.svg" />
 <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+<!-- Social link previews (Slack / Teams / email unfurls) -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Commute-a-thlon" />
+<meta property="og:title" content="Commute-a-thlon" />
+<meta property="og:description" content="Log real commutes — walk, bike, ski, paddle, stairs — draw your route, climb the leaderboard, and win awards." />
+<meta property="og:image" content="commute-a-thlon-icon.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Commute-a-thlon" />
+<meta name="twitter:description" content="Log real commutes, climb the leaderboard, and win awards." />
+<meta name="twitter:image" content="commute-a-thlon-icon.png" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -358,6 +370,22 @@ table.lb tr.rank-3{background:#fbf0e6}
 .lb-rank.r3{background:#c17a4a;color:#fff}
 .lb-name{font-weight:700}
 .lb-status{color:var(--muted);font-size:13px;padding:10px 0}
+.lb-tabs{display:inline-flex;gap:4px;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius-pill);padding:3px}
+.lb-tab{border:0;background:transparent;color:var(--muted);font-weight:600;font-size:13px;padding:5px 14px;border-radius:var(--radius-pill);cursor:pointer}
+.lb-tab:hover{color:var(--ink)}
+.lb-tab.is-active{background:var(--surface);color:var(--title);box-shadow:var(--shadow)}
+
+/* personal rank card (shown after a successful submit) */
+.rankcard{margin-top:12px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);
+  box-shadow:var(--shadow);padding:14px 16px;border-top:3px solid transparent;border-image:var(--grad-tri) 1}
+.rankcard h3{font-size:15px;margin-bottom:2px}
+.rankcard .rc-sub{color:var(--muted);font-size:13px;margin-bottom:10px}
+.rankcard .rc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(max-width:520px){.rankcard .rc-grid{grid-template-columns:1fr}}
+.rc-cell{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius-sm);padding:10px 12px;text-align:center}
+.rc-cell .rc-k{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+.rc-cell .rc-v{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:24px;line-height:1.1;color:var(--title)}
+.rc-cell .rc-of{color:var(--muted);font-size:12px}
 
 /* fixed submit bar */
 .submitbar{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(100deg,#0d1620,var(--ink) 60%);color:#fff;
@@ -477,6 +505,7 @@ body.tab-standings .submitbar,body.tab-mine .submitbar{display:none}
           </div>
         </div>
       </div>
+      <p class="hint" style="margin:8px 0 0">Your email is your identity here — it links your commutes and lets you look them up later. There's no password, so anyone who knows an email can view that person's entries. We store only what you enter (email, name, team, and your logged commutes); nothing is shared outside this challenge.</p>
     </div>
   </section>
 
@@ -650,6 +679,7 @@ body.tab-standings .submitbar,body.tab-mine .submitbar{display:none}
         <div class="cell"><div class="k">Originality</div><div class="v" id="m-orig">—</div></div>
       </div>
       <p class="submit-note hint" style="margin-top:10px">Submitting saves your commute to the database — you'll get a confirmation right here.</p>
+      <div id="rankCard" class="rankcard" style="display:none"></div>
     </div>
   </section>
 
@@ -666,14 +696,19 @@ body.tab-standings .submitbar,body.tab-mine .submitbar{display:none}
     </summary>
     <div class="pbody">
       <div class="btn-row" style="margin-bottom:10px">
-        <span class="hint" style="margin:0">Ranked by total distance logged.</span>
+        <div class="lb-tabs" role="tablist" aria-label="Rank by">
+          <button type="button" class="lb-tab is-active" data-metric="distance" role="tab" aria-selected="true">Distance</button>
+          <button type="button" class="lb-tab" data-metric="completion" role="tab" aria-selected="false">Completion</button>
+          <button type="button" class="lb-tab" data-metric="effort" role="tab" aria-selected="false">Effort</button>
+        </div>
         <button type="button" class="btn ghost sm" id="lbRefresh" style="margin-left:auto">Refresh</button>
       </div>
+      <div class="hint" id="lbBlurb" style="margin:0 0 8px">Ranked by total distance logged.</div>
       <div id="lbStatus" class="lb-status"></div>
       <div style="overflow-x:auto">
         <table class="exp lb" id="lbTable" style="display:none">
           <thead><tr>
-            <th>#</th><th>Name</th><th>Team</th><th class="num">Distance (km)</th><th class="num">Commutes logged</th>
+            <th>#</th><th>Name</th><th>Team</th><th class="num" id="lbMetricHead">Distance (km)</th><th class="num">Commutes logged</th>
           </tr></thead>
           <tbody id="lbBody"></tbody>
         </table>
@@ -1642,8 +1677,32 @@ function nearestWqSiteOptions(){
 /* ====================== LEADERBOARD ====================== */
 // Reads aggregated standings from the D1-backed Pages Function
 // GET /api/leaderboard (same-origin JSON — no CORS workaround needed).
+// Three ways to rank the same rows — the API returns all three metrics, so
+// switching tabs re-sorts client-side without another round-trip.
+const LB_METRICS = {
+  distance:   { key:"total_distance_km",       head:"Distance (km)",    blurb:"Ranked by total distance logged.",
+                fmt:v=>v.toFixed(2) },
+  completion: { key:"best_completion_percent", head:"Best completion",  blurb:"Ranked by best completion vs target — short commutes stay competitive.",
+                fmt:v=>v.toFixed(1)+"%" },
+  effort:     { key:"total_met_minutes",       head:"Effort (MET·min)", blurb:"Ranked by total effort (MET-minutes) — harder activities count for more.",
+                fmt:v=>Math.round(v).toLocaleString() },
+};
+let lbMetric = "distance";
+let lbRows = [];
+
 function wireLeaderboard(){
   document.getElementById("lbRefresh").addEventListener("click", loadLeaderboard);
+  document.querySelectorAll(".lb-tab").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      lbMetric = btn.dataset.metric;
+      document.querySelectorAll(".lb-tab").forEach(b=>{
+        const on = b === btn;
+        b.classList.toggle("is-active", on);
+        b.setAttribute("aria-selected", on ? "true" : "false");
+      });
+      renderLeaderboard();
+    });
+  });
 }
 async function loadLeaderboard(){
   const status = document.getElementById("lbStatus");
@@ -1657,7 +1716,8 @@ async function loadLeaderboard(){
     if(!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
     if(!data.success) throw new Error(data.error || "Unknown error");
-    renderLeaderboard(data.rows || []);
+    lbRows = data.rows || [];
+    renderLeaderboard();
   }catch(err){
     status.textContent = "Couldn't load the leaderboard (" + err.message + "). Try Refresh.";
   }
@@ -1667,6 +1727,7 @@ const AWARD_UNITS = {
   met_monster:"MET·min", commute_athlon_champion:"%", fun_machine:"fun", most_original:"orig",
   daily_grinder:"commutes", office_tower_legend:"storeys", winter_warrior:"km",
   water_creature:"km", wheel_wizard:"km", human_hybrid:"types",
+  speed_demon:"km/h", personal_best:"MET·min gain",
 };
 async function loadAwards(){
   const statusEl = document.getElementById("awardsStatus");
@@ -1704,12 +1765,16 @@ function fmtAwardVal(v){
   const n = Number(v) || 0;
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
-function renderLeaderboard(rows){
+function renderLeaderboard(){
   const status = document.getElementById("lbStatus");
   const table = document.getElementById("lbTable");
-  const ranked = rows
-    .map(r => Object.assign({}, r, { dist: Number(r.total_distance_km) || 0 }))
-    .sort((a,b)=> b.dist - a.dist);
+  const m = LB_METRICS[lbMetric] || LB_METRICS.distance;
+  document.getElementById("lbMetricHead").textContent = m.head;
+  document.getElementById("lbBlurb").textContent = m.blurb;
+
+  const ranked = lbRows
+    .map(r => Object.assign({}, r, { val: Number(r[m.key]) || 0 }))
+    .sort((a,b)=> b.val - a.val);
   if(!ranked.length){
     status.textContent = "No submissions yet — be the first!";
     status.style.display = "block";
@@ -1723,7 +1788,7 @@ function renderLeaderboard(rows){
       <td><span class="lb-rank${medal}">${rank}</span></td>
       <td class="lb-name">${esc(r.display_name || "—")}</td>
       <td>${esc(r.team || "—")}</td>
-      <td class="num">${r.dist.toFixed(2)}</td>
+      <td class="num">${m.fmt(r.val)}</td>
       <td class="num">${Math.round(Number(r.submission_count)||0)}</td>
     </tr>`;
   }).join("");
@@ -2005,6 +2070,7 @@ async function submit(){
       showStatus("ok",
         "Submitted " + payload.activities.length + " activit" +
         (payload.activities.length===1?"y":"ies") + ". Saved ✓");
+      showRankCard(email);
     }else{
       showStatus("err", data.error || "Something went wrong.");
       console.error("Submission rejected:", data, "Payload:", payload);
@@ -2020,6 +2086,41 @@ function showStatus(kind, msg){
   const s = document.getElementById("status");
   s.className = "status show " + kind;
   s.textContent = msg;
+}
+
+// After a successful submit, show where this person now ranks across all three
+// metrics. Rank = 1 + (participants strictly ahead of you on that metric), read
+// from the same aggregates the leaderboard uses. Best-effort — failures are
+// swallowed so a hiccup here never masks the "Saved ✓" confirmation.
+async function showRankCard(email){
+  const card = document.getElementById("rankCard");
+  try{
+    const [meRes, lbRes] = await Promise.all([
+      fetch("/api/me?email=" + encodeURIComponent(email)),
+      fetch("/api/leaderboard"),
+    ]);
+    const me = await meRes.json();
+    const lb = await lbRes.json();
+    if(!me.success || !me.found || !lb.success) return;
+    const rows = lb.rows || [];
+    const total = rows.length;
+    if(!total) return;
+    const s = me.stats || {};
+    const rankFor = (key, mine)=> 1 + rows.filter(r => (Number(r[key])||0) > mine).length;
+    const cells = [
+      { label:"Distance",   key:"total_distance_km",       mine:Number(s.total_distance_km)||0 },
+      { label:"Completion", key:"best_completion_percent", mine:Number(s.best_completion_percent)||0 },
+      { label:"Effort",     key:"total_met_minutes",       mine:Number(s.total_met_minutes)||0 },
+    ].map(c=>{
+      const rank = rankFor(c.key, c.mine);
+      return `<div class="rc-cell"><div class="rc-k">${c.label}</div><div class="rc-v">#${rank}</div><div class="rc-of">of ${total}</div></div>`;
+    }).join("");
+    card.innerHTML =
+      `<h3>Your standing</h3>` +
+      `<div class="rc-sub">Where you rank right now across all participants.</div>` +
+      `<div class="rc-grid">${cells}</div>`;
+    card.style.display = "";
+  }catch{ /* rank card is a nice-to-have; ignore failures */ }
 }
 
 async function submitFeedback(){

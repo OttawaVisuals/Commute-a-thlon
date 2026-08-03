@@ -124,6 +124,7 @@ Schema in `d1/schema.sql`:
 | `activities` | one row per activity leg, linked by `submission_id` |
 | `ratings` | community votes: one row per `(email, activity_id)`, 1–10 on fun/originality/difficulty |
 | `feedback` | free-text feedback messages |
+| `rate_limits` | operational only — fixed-window per-IP request counters for the write endpoints; holds no user data |
 
 ## Target
 
@@ -132,6 +133,8 @@ Pick a **format** (Olympic or Ironman) and a **challenge distance**. The format 
 ## Submission contract
 
 On submit the client POSTs one JSON body to `/api/submit`. The Function inserts **one `submissions` row + one `activities` row per activity**, and **upserts the `participant`** (keyed by email). The `submissions.id` is auto-generated; the response is `{ success, submissionId }`.
+
+**The server does not trust the client's summary totals.** Because the leaderboard is competitive, `/api/submit` recomputes `totalDistanceKm`, `totalActiveMinutes`, `totalMETMinutes` (per leg as `met × minutes`), `funScore`, `originalityScore`, and `completionPercent` from the activity legs, after clamping each leg to a plausible range (distance ≤ 500, minutes ≤ 1440, MET ≤ 30, factors ≤ 10). The client's own totals in the payload are ignored. This isn't full anti-cheat — a determined user can still fabricate realistic-looking legs — but it closes the trivial "POST `totalDistanceKm: 999999`" hole. The write endpoints (`submit`, `rate`, `feedback`) are also fixed-window per-IP rate-limited via the `rate_limits` table (see `functions/api/_lib.js`).
 
 Payload keys are **camelCase**:
 
@@ -158,12 +161,12 @@ Payload keys are **camelCase**:
 
 ## Awards
 
-`data/awards.csv` lists 12 awards. `GET /api/awards` computes the current holder for **10** of them from D1 aggregates (MET Monster, Champion, Fun Machine, Most Original, Daily Grinder, Office Tower Legend, Winter Warrior, Canal Creature, Wheel Wizard, Human Hybrid). Two are intentionally left uncomputed because their rules are ambiguous:
+`data/awards.csv` lists 12 awards. `GET /api/awards` computes the current holder for **all 12** from D1 aggregates (MET Monster, Champion, Fun Machine, Most Original, Daily Grinder, Office Tower Legend, Winter Warrior, Canal Creature, Wheel Wizard, Human Hybrid, plus the two below). An award with no qualifying participant yet renders as "Not yet awarded".
 
-- **Speed Demon** ("fastest total commute time") — undefined at which distance / what counts as "fast".
-- **Personal Best** ("largest improvement vs previous average") — needs a defined baseline.
+Two awards had ambiguous source descriptions and are computed with a pinned-down interpretation:
 
-They render as "Not yet awarded" until the rules are pinned down.
+- **Speed Demon** ("fastest total commute time") → **highest average commute pace** (total distance ÷ total active time), gated to ≥5 km logged so a single short sprint can't win. Lowest raw time would just reward the shortest commute, so it's read as fastest *pace*.
+- **Personal Best** ("largest improvement vs previous average") → **largest jump in a participant's most recent submission's MET-minutes over the average of their earlier submissions** (needs ≥2 submissions).
 
 ## Water quality data
 
@@ -192,9 +195,10 @@ Commute-a-thlon/
 │       ├── rate.js             # POST /api/rate
 │       ├── ratings.js          # GET  /api/ratings
 │       ├── awards.js           # GET  /api/awards
-│       └── feedback.js         # POST /api/feedback
+│       ├── feedback.js         # POST /api/feedback
+│       └── _lib.js             # shared helpers (json, per-IP rate limiter) — not a route
 ├── d1/
-│   └── schema.sql              # D1 tables (participants, submissions, activities, ratings, feedback)
+│   └── schema.sql              # D1 tables (participants, submissions, activities, ratings, feedback, rate_limits)
 ├── data/
 │   ├── activities.csv          # source of truth for activity metadata
 │   ├── categories.csv

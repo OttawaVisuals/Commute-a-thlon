@@ -5,11 +5,29 @@
 // Schema: d1/schema.sql. Returns { success, submissionId } — a real, readable
 // response (no more no-cors optimistic writes).
 
+import { rateLimit, tooMany } from "./_lib.js";
+
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 const str = (v) => (v == null ? "" : String(v));
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, num(v)));
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
+// Per-leg sanity ceilings. The leaderboard is competitive, so the server does
+// NOT trust the client's summary totals — it recomputes them from the activity
+// legs, and clamps each leg to a physically plausible range first. This closes
+// the trivial "POST totalDistanceKm: 999999" hole. It is not full anti-cheat
+// (a determined user can still fabricate realistic-looking legs), but it makes
+// gaming require plausible per-leg data rather than a one-line edit.
+const MAX_LEG_DISTANCE = 500;   // km (or storeys) for a single logged leg
+const MAX_LEG_MINUTES = 1440;   // 24h
+const MAX_LEG_MET = 30;         // well above any compendium value
+const MAX_FACTOR = 10;          // fun/originality are on a 1-10 scale
+const MAX_ACTIVITIES = 50;      // legs per submission
+
 export async function onRequestPost({ request, env }) {
+  const rl = await rateLimit(env, request, { endpoint: "submit", limit: 20, windowSec: 600 });
+  if (!rl.ok) return tooMany(rl.retryAfter);
+
   let data;
   try {
     data = await request.json();
@@ -25,10 +43,46 @@ export async function onRequestPost({ request, env }) {
     return json({ success: false, error: "That doesn't look like a valid email" }, 400);
   }
 
-  const activities = Array.isArray(data.activities) ? data.activities : [];
-  if (!activities.length) {
+  const rawActivities = Array.isArray(data.activities) ? data.activities : [];
+  if (!rawActivities.length) {
     return json({ success: false, error: "Log at least one activity before submitting" }, 400);
   }
+  if (rawActivities.length > MAX_ACTIVITIES) {
+    return json({ success: false, error: "Too many activities in one submission" }, 400);
+  }
+
+  // ── Recompute trusted values from the legs (never trust client summaries) ──
+  const activities = rawActivities.map((a) => {
+    const unit = str(a.distanceUnit) || "km";
+    const distance = clamp(a.distance, 0, MAX_LEG_DISTANCE);
+    const timeMinutes = clamp(a.timeMinutes, 0, MAX_LEG_MINUTES);
+    const met = clamp(a.met, 0, MAX_LEG_MET);
+    const funFactor = clamp(a.funFactor, 0, MAX_FACTOR);
+    const originalityFactor = clamp(a.originalityFactor, 0, MAX_FACTOR);
+    return {
+      category: str(a.category),
+      activityId: str(a.activityId),
+      activityName: str(a.activityName),
+      distance,
+      distanceUnit: unit,
+      timeMinutes,
+      met,
+      metMinutes: met * timeMinutes,               // derived, not trusted
+      funFactor,
+      originalityFactor,
+      calculatedSpeed: clamp(a.calculatedSpeed, 0, 200),
+      season: str(a.season),
+      isKm: unit === "km",
+    };
+  });
+
+  const totalDistanceKm = activities.reduce((s, a) => s + (a.isKm ? a.distance : 0), 0);
+  const totalActiveMinutes = activities.reduce((s, a) => s + a.timeMinutes, 0);
+  const totalMETMinutes = activities.reduce((s, a) => s + a.metMinutes, 0);
+  const funScore = activities.reduce((s, a) => s + a.funFactor, 0) / activities.length;
+  const originalityScore = activities.reduce((s, a) => s + a.originalityFactor, 0) / activities.length;
+  const targetDistanceKm = clamp(data.targetDistanceKm, 0, 100000);
+  const completionPercent = targetDistanceKm > 0 ? (totalDistanceKm / targetDistanceKm) * 100 : 0;
 
   try {
     // 1) Insert the submission and capture its auto-increment id.
@@ -42,10 +96,10 @@ export async function onRequestPost({ request, env }) {
        ) VALUES (?,?,?,?, ?,?,?,?,?, ?,?,?,?, ?,?,?,?, ?,?,?,?,?)`
     ).bind(
       email, str(data.displayName), str(data.team), str(data.usualCommuteMode),
-      str(data.targetFormat), num(data.targetDistanceKm), num(data.targetSwimKm), num(data.targetBikeKm), num(data.targetRunKm),
+      str(data.targetFormat), targetDistanceKm, num(data.targetSwimKm), num(data.targetBikeKm), num(data.targetRunKm),
       num(data.drawnSwimKm), num(data.drawnBikeKm), num(data.drawnRunKm), num(data.transitionMinutes),
-      num(data.totalDistanceKm), num(data.totalActiveMinutes), num(data.totalElapsedMinutes), num(data.totalMETMinutes),
-      num(data.funScore), num(data.originalityScore), num(data.completionPercent), activities.length, str(data.notes)
+      totalDistanceKm, totalActiveMinutes, num(data.totalElapsedMinutes), totalMETMinutes,
+      funScore, originalityScore, completionPercent, activities.length, str(data.notes)
     ).run();
 
     const submissionId = sub.meta.last_row_id;
@@ -60,9 +114,9 @@ export async function onRequestPost({ request, env }) {
     );
 
     const batch = activities.map((a) => insertActivity.bind(
-      submissionId, str(a.category), str(a.activityId), str(a.activityName),
-      num(a.distance), str(a.distanceUnit), num(a.timeMinutes), num(a.met), num(a.metMinutes),
-      num(a.funFactor), num(a.originalityFactor), num(a.calculatedSpeed), str(a.season)
+      submissionId, a.category, a.activityId, a.activityName,
+      a.distance, a.distanceUnit, a.timeMinutes, a.met, a.metMinutes,
+      a.funFactor, a.originalityFactor, a.calculatedSpeed, a.season
     ));
 
     batch.push(

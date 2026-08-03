@@ -2,10 +2,15 @@
 // Requires a D1 database bound as DB (configured in wrangler.toml).
 // Schema: d1/schema.sql.
 
+import { rateLimit, tooMany } from "./_lib.js";
+
 const MAX_MESSAGE_LEN = 2000;
 const MAX_NAME_LEN = 100;
 
 export async function onRequestPost({ request, env }) {
+  const rl = await rateLimit(env, request, { endpoint: "feedback", limit: 8, windowSec: 600 });
+  if (!rl.ok) return tooMany(rl.retryAfter);
+
   let body;
   try {
     body = await request.json();

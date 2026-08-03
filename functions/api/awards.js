@@ -1,9 +1,16 @@
 // Cloudflare Pages Function — GET /api/awards
 // Computes the current holder of each award from D1. Award names/descriptions
 // live in data/awards.csv (loaded client-side); this endpoint returns the
-// winner keyed by award_id. Two awards (speed_demon, personal_best) have
-// ambiguous rules and are intentionally left uncomputed — the client shows
-// them as "not yet awarded" until the rule is pinned down.
+// winner keyed by award_id.
+//
+// All 12 awards are now computed:
+//   • Speed Demon  — highest average commute pace (total distance ÷ total active
+//     time), gated to ≥5 km logged so a single short sprint can't win. ("Fastest
+//     commute time" taken as fastest *pace*, since lowest raw time would just
+//     reward the shortest commute.)
+//   • Personal Best — largest improvement of a participant's most recent
+//     submission's MET-minutes over the average of their earlier submissions
+//     (needs ≥2 submissions).
 // Requires a D1 database bound as DB (configured in wrangler.toml).
 
 export async function onRequestGet({ env }) {
@@ -16,6 +23,8 @@ export async function onRequestGet({ env }) {
          p.team,
          COUNT(s.id)                              AS submissions,
          COALESCE(SUM(s.total_met_minutes), 0)    AS met,
+         COALESCE(SUM(s.total_distance_km), 0)    AS distance,
+         COALESCE(SUM(s.total_active_minutes), 0) AS active_min,
          COALESCE(MAX(s.completion_percent), 0)   AS best_completion,
          COALESCE(MAX(s.fun_score), 0)            AS best_fun,
          COALESCE(MAX(s.originality_score), 0)    AS best_orig
@@ -46,6 +55,9 @@ export async function onRequestGet({ env }) {
         team: r.team || "",
         submissions: r.submissions,
         met: r.met,
+        pace: Number(r.distance) >= 5 && Number(r.active_min) > 0
+          ? (Number(r.distance) / Number(r.active_min)) * 60
+          : 0,
         best_completion: r.best_completion,
         best_fun: r.best_fun,
         best_orig: r.best_orig,
@@ -62,6 +74,30 @@ export async function onRequestGet({ env }) {
       p.activity_types = r.activity_types;
     }
     const people = [...byEmail.values()];
+
+    // Personal Best: per participant, compare their latest submission's
+    // MET-minutes to the average of all earlier ones. Needs ≥2 submissions.
+    const { results: perSub } = await env.DB.prepare(
+      `SELECT email, id, COALESCE(total_met_minutes, 0) AS met
+       FROM submissions ORDER BY email, id`
+    ).all();
+    const subsByEmail = new Map();
+    for (const r of perSub || []) {
+      if (!subsByEmail.has(r.email)) subsByEmail.set(r.email, []);
+      subsByEmail.get(r.email).push(Number(r.met) || 0);
+    }
+    let personalBest = null;
+    for (const [email, mets] of subsByEmail) {
+      if (mets.length < 2) continue;
+      const latest = mets[mets.length - 1];
+      const prior = mets.slice(0, -1);
+      const priorAvg = prior.reduce((s, v) => s + v, 0) / prior.length;
+      const improvement = latest - priorAvg;
+      const p = byEmail.get(email);
+      if (improvement > 0 && (!personalBest || improvement > personalBest.value)) {
+        personalBest = { name: p ? p.name : email, team: p ? p.team : "", value: improvement };
+      }
+    }
 
     // For an award, the winner is the person with the highest value (> 0).
     const top = (key) => {
@@ -84,6 +120,8 @@ export async function onRequestGet({ env }) {
       water_creature: top("water_km"),
       wheel_wizard: top("wheels_km"),
       human_hybrid: top("activity_types"),
+      speed_demon: top("pace"),
+      personal_best: personalBest,
     };
 
     return json({ success: true, winners });

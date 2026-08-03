@@ -91,3 +91,14 @@ CREATE TABLE IF NOT EXISTS feedback (
   name       TEXT,
   message    TEXT NOT NULL
 );
+
+-- ── rate_limits ─────────────────────────────────────────────────────────────
+-- Fixed-window per-IP request counters for the write endpoints (submit / rate /
+-- feedback). One row per endpoint:ip:window bucket; expired rows are pruned
+-- opportunistically by the limiter (functions/api/_lib.js). Purely operational —
+-- holds no user data.
+CREATE TABLE IF NOT EXISTS rate_limits (
+  bucket     TEXT PRIMARY KEY,
+  hits       INTEGER NOT NULL DEFAULT 0,
+  expires_at INTEGER NOT NULL
+);

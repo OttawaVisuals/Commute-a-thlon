@@ -11,7 +11,8 @@ export async function onRequestGet({ env }) {
          p.team                                      AS team,
          COUNT(s.id)                                 AS submission_count,
          ROUND(COALESCE(SUM(s.total_distance_km), 0), 2) AS total_distance_km,
-         ROUND(COALESCE(SUM(s.total_met_minutes), 0), 1) AS total_met_minutes
+         ROUND(COALESCE(SUM(s.total_met_minutes), 0), 1) AS total_met_minutes,
+         ROUND(COALESCE(MAX(s.completion_percent), 0), 1) AS best_completion_percent
        FROM participants p
        LEFT JOIN submissions s ON s.email = p.email
        GROUP BY p.email
