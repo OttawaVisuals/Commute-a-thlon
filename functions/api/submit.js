@@ -84,18 +84,24 @@ export async function onRequestPost({ request, env }) {
   const targetDistanceKm = clamp(data.targetDistanceKm, 0, 100000);
   const completionPercent = targetDistanceKm > 0 ? (totalDistanceKm / targetDistanceKm) * 100 : 0;
 
+  const usualCommuteKm1 = clamp(data.usualCommuteKm1, 0, MAX_LEG_DISTANCE);
+  const usualCommuteKm2 = clamp(data.usualCommuteKm2, 0, MAX_LEG_DISTANCE);
+  // Accept only a plain YYYY-MM-DD; anything else falls back to NULL (the row's
+  // created_at still records when it was logged).
+  const activityDate = /^\d{4}-\d{2}-\d{2}$/.test(str(data.activityDate)) ? str(data.activityDate) : null;
+
   try {
     // 1) Insert the submission and capture its auto-increment id.
     const sub = await env.DB.prepare(
       `INSERT INTO submissions (
-         email, display_name, team, usual_commute_mode,
+         email, display_name, team, usual_commute_mode, usual_commute_km_1, usual_commute_km_2, activity_date,
          target_format, target_distance_km, target_swim_km, target_bike_km, target_run_km,
          drawn_swim_km, drawn_bike_km, drawn_run_km, transition_minutes,
          total_distance_km, total_active_minutes, total_elapsed_minutes, total_met_minutes,
          fun_score, originality_score, completion_percent, activity_count, notes
-       ) VALUES (?,?,?,?, ?,?,?,?,?, ?,?,?,?, ?,?,?,?, ?,?,?,?,?)`
+       ) VALUES (?,?,?,?,?,?,?, ?,?,?,?,?, ?,?,?,?, ?,?,?,?, ?,?,?,?,?)`
     ).bind(
-      email, str(data.displayName), str(data.team), str(data.usualCommuteMode),
+      email, str(data.displayName), str(data.team), str(data.usualCommuteMode), usualCommuteKm1, usualCommuteKm2, activityDate,
       str(data.targetFormat), targetDistanceKm, num(data.targetSwimKm), num(data.targetBikeKm), num(data.targetRunKm),
       num(data.drawnSwimKm), num(data.drawnBikeKm), num(data.drawnRunKm), num(data.transitionMinutes),
       totalDistanceKm, totalActiveMinutes, num(data.totalElapsedMinutes), totalMETMinutes,
@@ -121,14 +127,16 @@ export async function onRequestPost({ request, env }) {
 
     batch.push(
       env.DB.prepare(
-        `INSERT INTO participants (email, display_name, team, usual_commute_mode, updated_at)
-         VALUES (?, ?, ?, ?, datetime('now'))
+        `INSERT INTO participants (email, display_name, team, usual_commute_mode, usual_commute_km_1, usual_commute_km_2, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
          ON CONFLICT(email) DO UPDATE SET
            display_name       = excluded.display_name,
            team               = excluded.team,
            usual_commute_mode = excluded.usual_commute_mode,
+           usual_commute_km_1 = excluded.usual_commute_km_1,
+           usual_commute_km_2 = excluded.usual_commute_km_2,
            updated_at         = datetime('now')`
-      ).bind(email, str(data.displayName), str(data.team), str(data.usualCommuteMode))
+      ).bind(email, str(data.displayName), str(data.team), str(data.usualCommuteMode), usualCommuteKm1, usualCommuteKm2)
     );
 
     await env.DB.batch(batch);

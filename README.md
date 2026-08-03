@@ -13,7 +13,7 @@ Cloudflare Pages (git-connected, native deploy — no build step)
   └─ functions/api/*.js  ──▶  D1 database (binding: DB)
        POST /api/submit        writes submissions + activities, upserts participants
        GET  /api/leaderboard   aggregated standings
-       GET  /api/me?email=     one person's profile + stats + history
+       POST /api/me            one person's profile + stats + history (email in body)
        POST /api/rate          community rating (1 vote per person per activity)
        GET  /api/ratings       aggregate activity rankings
        GET  /api/awards        current award holders
@@ -56,6 +56,12 @@ npx wrangler d1 execute commute-a-thlon-feedback --remote --file=d1/schema.sql
 
 or by pasting the statements into the Cloudflare dashboard's **D1 → Console** tab (one statement at a time, without the leading comments — the console rejects comment-only input with "Requests without any query are not supported"). All statements use `IF NOT EXISTS`, so re-running is safe.
 
+**Existing databases:** `schema.sql` only *creates* missing tables — it does not add new columns to tables that already exist. When a change adds columns, they're collected in `d1/migrations.sql` as `ALTER TABLE … ADD COLUMN` statements to run once on an older database. Run the migration **before/with** deploying the matching code, since the new `submit.js` writes to those columns:
+
+```bash
+npx wrangler d1 execute commute-a-thlon-feedback --remote --file=d1/migrations.sql
+```
+
 ### Run it locally
 
 The static UI needs an HTTP server (CSV `fetch()` fails on `file://`), and this renders every panel *except* the D1-backed ones (leaderboard, awards, ratings, my-entries, submit):
@@ -78,7 +84,7 @@ The UI is organized into three tabs plus an always-available feedback panel:
 
 ## Identity (email-as-identity)
 
-There is no password. A person's **email is their identity** — `participants` is keyed by email, submissions and ratings carry it, and `GET /api/me?email=` returns that person's data. This is deliberately lightweight for a friendly challenge; anyone who types an email can view that person's entries. A verified magic-link login is a possible future upgrade.
+There is no password. A person's **email is their identity** — `participants` is keyed by email, submissions and ratings carry it, and `POST /api/me` (email in the request body) returns that person's data. This is deliberately lightweight for a friendly challenge; anyone who knows an email can view that person's entries. To limit that exposure the lookup is a POST (email never in the URL / server logs) and is per-IP rate-limited so it can't be probed at scale, but it is still an unauthenticated oracle — a verified magic-link login is the natural future upgrade.
 
 ## Data model
 
@@ -119,7 +125,7 @@ Schema in `d1/schema.sql`:
 
 | table | holds |
 |---|---|
-| `participants` | one row per person, keyed by `email` (+ display name, team, `usual_commute_mode`) |
+| `participants` | one row per person, keyed by `email` (+ display name, team, `usual_commute_mode`, and `usual_commute_km_1/2`) |
 | `submissions` | one row per logged commute effort (totals, target, drawn distances, notes) |
 | `activities` | one row per activity leg, linked by `submission_id` |
 | `ratings` | community votes: one row per `(email, activity_id)`, 1–10 on fun/originality/difficulty |
@@ -141,6 +147,7 @@ Payload keys are **camelCase**:
 ```jsonc
 {
   "email": "", "displayName": "", "team": "", "usualCommuteMode": "",
+  "usualCommuteKm1": 0, "usualCommuteKm2": 0, "activityDate": "YYYY-MM-DD",
   "targetDistanceKm": 0, "targetFormat": "Olympic",
   "targetSwimKm": 0, "targetBikeKm": 0, "targetRunKm": 0,
   "drawnSwimKm": 0, "drawnBikeKm": 0, "drawnRunKm": 0,
@@ -157,7 +164,7 @@ Payload keys are **camelCase**:
 }
 ```
 
-`email` is required. `usualCommuteMode` is the combined primary + optional second leg (e.g. `"transit + walk"`). Per-activity `met`/`metMinutes` are the *effective*, pace-adjusted values (see "Pace-adjusted effort" above), not necessarily the CSV's flat `met`. If you rename a field, rename it on both the client (`buildPayload` in `index.html`) and the Function.
+`email` is required. `usualCommuteMode` is the combined primary + optional second leg (e.g. `"transit + walk"`), with `usualCommuteKm1` / `usualCommuteKm2` the (optional) one-way distance of each leg — stored on both `participants` (canonical, for a possible future "usual commute distance" award) and the `submissions` snapshot. `activityDate` is the `YYYY-MM-DD` the commute was actually done (the row's `created_at` still records when it was logged); a malformed value is stored as `NULL`. Per-activity `met`/`metMinutes` are the *effective*, pace-adjusted values (see "Pace-adjusted effort" above), not necessarily the CSV's flat `met`. If you rename a field, rename it on both the client (`buildPayload` in `index.html`) and the Function.
 
 ## Awards
 
@@ -191,14 +198,16 @@ Commute-a-thlon/
 │   └── api/
 │       ├── submit.js           # POST /api/submit
 │       ├── leaderboard.js      # GET  /api/leaderboard
-│       ├── me.js               # GET  /api/me?email=
+│       ├── me.js               # POST /api/me (email in body)
 │       ├── rate.js             # POST /api/rate
 │       ├── ratings.js          # GET  /api/ratings
 │       ├── awards.js           # GET  /api/awards
 │       ├── feedback.js         # POST /api/feedback
 │       └── _lib.js             # shared helpers (json, per-IP rate limiter) — not a route
 ├── d1/
-│   └── schema.sql              # D1 tables (participants, submissions, activities, ratings, feedback, rate_limits)
+│   ├── schema.sql              # D1 tables (participants, submissions, activities, ratings, feedback, rate_limits)
+│   ├── migrations.sql          # ALTER statements to bring an existing DB up to schema.sql
+│   └── cleanup.sql             # reference snippets for deleting test rows
 ├── data/
 │   ├── activities.csv          # source of truth for activity metadata
 │   ├── categories.csv

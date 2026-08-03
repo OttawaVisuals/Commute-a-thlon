@@ -15,6 +15,8 @@ CREATE TABLE IF NOT EXISTS participants (
   display_name       TEXT,
   team               TEXT,
   usual_commute_mode TEXT,
+  usual_commute_km_1 REAL,   -- rough one-way distance of the main usual-commute leg
+  usual_commute_km_2 REAL,   -- ...and the optional second leg
   created_at         TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at         TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -27,6 +29,9 @@ CREATE TABLE IF NOT EXISTS submissions (
   display_name         TEXT,
   team                 TEXT,
   usual_commute_mode   TEXT,
+  usual_commute_km_1   REAL,
+  usual_commute_km_2   REAL,
+  activity_date        TEXT,   -- YYYY-MM-DD the commute was actually done (created_at is when it was logged)
   target_format        TEXT,
   target_distance_km   REAL,
   target_swim_km       REAL,

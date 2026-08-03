@@ -107,6 +107,8 @@ main{max-width:var(--content-w);margin:0 auto;padding:8px 18px;display:grid;gap:
 
 /* two/four columns for form fields at this width, still a single-column page */
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;align-items:end}
+@media(max-width:560px){.grid3{grid-template-columns:1fr}}
 .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
 .grid5{display:grid;grid-template-columns:repeat(4,1fr) auto;gap:9px}
 .grid6{display:grid;grid-template-columns:repeat(5,1fr) auto;gap:9px}
@@ -402,7 +404,8 @@ table.lb tr.rank-3{background:#fbf0e6}
 
 /* tabs */
 .tabbar{position:sticky;top:0;z-index:60;background:var(--paper);border-bottom:1px solid var(--line)}
-.tabbar-inner{max-width:var(--content-w);margin:0 auto;padding:0 20px;display:flex;gap:2px;overflow-x:auto}
+.tabbar-inner{max-width:var(--content-w);margin:0 auto;padding:0 20px;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none}
+.tabbar-inner::-webkit-scrollbar{display:none}
 .tabbtn{appearance:none;background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-1px;
   padding:8px 15px;font-family:"Space Grotesk",sans-serif;font-size:14px;font-weight:700;color:var(--muted);
   cursor:pointer;display:flex;align-items:center;gap:7px;letter-spacing:-.01em;white-space:nowrap}
@@ -418,6 +421,7 @@ body.tab-standings .submitbar,body.tab-mine .submitbar{display:none}
 .commute-legs{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .commute-legs select{flex:1;min-width:0}
 .commute-legs .then{font-size:12px;color:var(--muted)}
+.commute-legs .leg-km{flex:0 0 62px;width:62px;text-align:right}
 
 .foot{max-width:var(--content-w);margin:0 auto;padding:16px 20px 24px;color:var(--muted);font-size:13px}
 .todo{background:#fff;border:1.5px dashed var(--line);border-radius:var(--radius-sm);padding:10px 12px;margin-top:10px;font-size:13px;color:var(--muted)}
@@ -479,10 +483,10 @@ body.tab-standings .submitbar,body.tab-mine .submitbar{display:none}
     <div class="phead-vert" style="--pa:var(--title)"><span class="vert-label">1 · You</span></div>
     <div class="pbody">
       <div class="grid-you">
-        <div class="field"><label for="email">Email</label><input id="email" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email" /></div>
-        <div class="field"><label for="displayName">Display name</label><input id="displayName" placeholder="e.g. J. Tremblay" autocomplete="name" /></div>
+        <div class="field"><label for="email">Email<button type="button" class="info-btn" aria-label="How your email is used">?<span class="tip" role="tooltip">Your email is your identity here — it links your commutes and lets you look them up later. There's no password, so anyone who knows an email can view that person's entries. We store only what you enter (email, name, team, your commutes); nothing is shared outside this challenge.</span></button></label><input id="email" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email" /></div>
+        <div class="field"><label for="displayName">Display name</label><input id="displayName" placeholder="e.g. John" autocomplete="name" /></div>
         <div class="field"><label for="team">Team / branch</label><input id="team" placeholder="e.g. Data Services" /></div>
-        <div class="field"><label for="commuteMode">Usual commute</label>
+        <div class="field"><label for="commuteMode">Usual commute<button type="button" class="info-btn" aria-label="About usual commute">?<span class="tip" role="tooltip">Your normal, everyday commute (before this challenge) — one or two legs, with each leg's rough one-way distance. Optional, but it lets us track total usual-commute distances.</span></button></label>
           <div class="commute-legs">
             <select id="commuteMode" aria-label="Usual commute — main mode">
               <option value="">Main mode…</option>
@@ -493,6 +497,7 @@ body.tab-standings .submitbar,body.tab-mine .submitbar{display:none}
               <option value="run">Run</option>
               <option value="other">Other</option>
             </select>
+            <input id="commuteKm1" class="leg-km" type="number" min="0" step="0.1" inputmode="decimal" placeholder="km" aria-label="Usual commute — main leg distance (km)" />
             <span class="then">then</span>
             <select id="commuteMode2" aria-label="Usual commute — optional second leg">
               <option value="">(2nd leg)</option>
@@ -502,10 +507,10 @@ body.tab-standings .submitbar,body.tab-mine .submitbar{display:none}
               <option value="bike">Bike</option>
               <option value="run">Run</option>
             </select>
+            <input id="commuteKm2" class="leg-km" type="number" min="0" step="0.1" inputmode="decimal" placeholder="km" aria-label="Usual commute — second leg distance (km)" />
           </div>
         </div>
       </div>
-      <p class="hint" style="margin:8px 0 0">Your email is your identity here — it links your commutes and lets you look them up later. There's no password, so anyone who knows an email can view that person's entries. We store only what you enter (email, name, team, and your logged commutes); nothing is shared outside this challenge.</p>
     </div>
   </section>
 
@@ -513,9 +518,13 @@ body.tab-standings .submitbar,body.tab-mine .submitbar{display:none}
   <section class="panel panel-side">
     <div class="phead-vert" style="--pa:var(--title)"><span class="vert-label">2 · Challenge</span></div>
     <div class="pbody">
-      <div class="grid2">
+      <div class="grid3">
         <div class="field-inline">
-          <label for="targetDistance">Challenge distance (km)</label>
+          <label for="commuteDate">Date<button type="button" class="info-btn" aria-label="About the date">?<span class="tip" role="tooltip">When you actually did this commute. Defaults to today — change it if you're logging one from an earlier day.</span></button></label>
+          <input id="commuteDate" type="date" />
+        </div>
+        <div class="field-inline">
+          <label for="targetDistance">Distance (km)</label>
           <input id="targetDistance" type="number" min="0" step="0.1" inputmode="decimal" value="10" />
         </div>
         <div class="field-inline">
@@ -572,6 +581,29 @@ body.tab-standings .submitbar,body.tab-mine .submitbar{display:none}
     </div>
   </section>
 
+  <!-- 4 · SUMMARY -->
+  <section class="panel panel-side">
+    <div class="phead-vert" style="--pa:var(--title)"><span class="vert-label">4 · Summary</span></div>
+    <div class="pbody">
+      <div class="instr">
+        <div class="cell completion wide" id="cell-completion">
+          <div class="k">Completion vs target</div>
+          <div class="v" id="m-completion">—</div>
+        </div>
+        <div class="cell"><div class="k">Effort</div><div class="v" id="m-met">0<small> MET·min</small></div></div>
+        <div class="cell"><div class="k">Activities</div><div class="v" id="m-count">0</div></div>
+        <div class="cell"><div class="k">Active min</div><div class="v" id="m-active">0</div></div>
+        <div class="cell"><div class="k">Elapsed min</div><div class="v" id="m-elapsed">0</div></div>
+        <div class="cell"><div class="k">Distance</div><div class="v" id="m-dist">0<small> km</small></div></div>
+        <div class="cell"><div class="k">Storeys</div><div class="v" id="m-storeys">0</div></div>
+        <div class="cell"><div class="k">Fun score</div><div class="v" id="m-fun">—</div></div>
+        <div class="cell"><div class="k">Originality</div><div class="v" id="m-orig">—</div></div>
+      </div>
+      <p class="submit-note hint" style="margin-top:10px">Submitting saves your commute to the database — you'll get a confirmation right here.</p>
+      <div id="rankCard" class="rankcard" style="display:none"></div>
+    </div>
+  </section>
+
   <div class="tools-head">Optional tools</div>
 
   <!-- ROUTE (optional / collapsible) -->
@@ -601,8 +633,6 @@ body.tab-standings .submitbar,body.tab-mine .submitbar{display:none}
       </div>
     </div>
   </details>
-
-  <!-- summary panel moved to the end of the Log tab -->
 
 
   <!-- 5 · FREESTYLE / ACTIVITY EXPLORER (collapsed by default — advanced tool, not part of the core log-a-commute flow) -->
@@ -660,28 +690,6 @@ body.tab-standings .submitbar,body.tab-mine .submitbar{display:none}
     </div>
   </details>
 
-  <!-- 4 · SUMMARY -->
-  <section class="panel panel-side">
-    <div class="phead-vert" style="--pa:var(--title)"><span class="vert-label">4 · Summary</span></div>
-    <div class="pbody">
-      <div class="instr">
-        <div class="cell completion wide" id="cell-completion">
-          <div class="k">Completion vs target</div>
-          <div class="v" id="m-completion">—</div>
-        </div>
-        <div class="cell"><div class="k">Effort</div><div class="v" id="m-met">0<small> MET·min</small></div></div>
-        <div class="cell"><div class="k">Activities</div><div class="v" id="m-count">0</div></div>
-        <div class="cell"><div class="k">Active min</div><div class="v" id="m-active">0</div></div>
-        <div class="cell"><div class="k">Elapsed min</div><div class="v" id="m-elapsed">0</div></div>
-        <div class="cell"><div class="k">Distance</div><div class="v" id="m-dist">0<small> km</small></div></div>
-        <div class="cell"><div class="k">Storeys</div><div class="v" id="m-storeys">0</div></div>
-        <div class="cell"><div class="k">Fun score</div><div class="v" id="m-fun">—</div></div>
-        <div class="cell"><div class="k">Originality</div><div class="v" id="m-orig">—</div></div>
-      </div>
-      <p class="submit-note hint" style="margin-top:10px">Submitting saves your commute to the database — you'll get a confirmation right here.</p>
-      <div id="rankCard" class="rankcard" style="display:none"></div>
-    </div>
-  </section>
 
   </div><!-- /tab-log -->
 
@@ -730,7 +738,7 @@ body.tab-standings .submitbar,body.tab-mine .submitbar{display:none}
       <span class="summary-toggle" id="rateToggleIcon">+ show</span>
     </summary>
     <div class="pbody">
-      <span class="hint" style="margin:0 0 10px;display:block">How fun, original, and hard is each way to commute? Rate 1–10.</span>
+      <span class="hint" style="margin:0 0 10px;display:block">How fun, original, and hard is each way to commute? Rate 1–10. Your email is remembered, and after each save it jumps to the next activity — so you can rate several in a row.</span>
       <div class="grid2" style="align-items:end">
         <div class="field"><label for="rateEmail">Email</label><input id="rateEmail" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email" /></div>
         <div class="field"><label for="rateActivity">Activity</label><select id="rateActivity"></select></div>
@@ -952,9 +960,32 @@ async function init(){
 
   addActivityRow();          // start with one row
   setFormat("olympic", true);
+  document.getElementById("commuteDate").value = todayLocal();  // default to today
+  restoreSavedEmail();       // prefill email fields from a prior visit
   renderExplorer();
   recompute();
   renderAnnouncements();
+}
+// Local (not UTC) YYYY-MM-DD — avoids the date rolling to "tomorrow" in the evening.
+function todayLocal(){
+  const d = new Date();
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+
+// Remember the email across the three places it's asked for (submit, my entries,
+// rate) and across visits, so nobody has to retype it. localStorage only —
+// stays on this device, never sent anywhere on its own.
+const EMAIL_KEY = "cat_email";
+function saveEmail(v){ try{ if(v) localStorage.setItem(EMAIL_KEY, v); }catch{} }
+function restoreSavedEmail(){
+  let saved = "";
+  try{ saved = localStorage.getItem(EMAIL_KEY) || ""; }catch{}
+  ["email","meEmail","rateEmail"].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    if(saved && !el.value) el.value = saved;
+    el.addEventListener("input", ()=> saveEmail(el.value.trim()));
+  });
 }
 
 /* ====================== TARGET / FORMAT ====================== */
@@ -1189,7 +1220,7 @@ function addActivityRow(){
   wrap.className = "arow";
   wrap.dataset.id = id;
   wrap.innerHTML = `
-    <div class="arow-head" data-role="idxline">Activity</div>
+    <div class="arow-head" data-role="idxline">#1</div>
     <div class="arow-body">
     <div><label>Category</label>
       <select data-role="cat">${state.categories.map(c=>`<option value="${c.category_id}">${esc(c.name)}</option>`).join("")}</select></div>
@@ -1238,7 +1269,7 @@ function addActivityRow(){
 function renumberRows(){
   document.querySelectorAll("#activityRows .arow").forEach((w,i)=>{
     const h = w.querySelector('[data-role="idxline"]');
-    if(h) h.textContent = "Activity " + (i+1);
+    if(h) h.textContent = "#" + (i+1);
   });
 }
 function fillActivities(catId, actSel){
@@ -1797,7 +1828,7 @@ function renderLeaderboard(){
 }
 
 /* ====================== MY ENTRIES ====================== */
-// Email-as-identity lookup against GET /api/me?email=. No password — the email
+// Email-as-identity lookup against POST /api/me (email in body). No password — the email
 // is the key. Prefills from the submit form's email when the panel opens.
 function wireMe(){
   const details = document.getElementById("meDetails");
@@ -1822,7 +1853,11 @@ async function loadMe(){
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ status.textContent = "That doesn't look like a valid email."; return; }
   status.textContent = "Loading…";
   try{
-    const res = await fetch("/api/me?email=" + encodeURIComponent(email));
+    const res = await fetch("/api/me", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ email }),
+    });
     if(!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
     if(!data.success) throw new Error(data.error || "Unknown error");
@@ -1851,7 +1886,7 @@ function renderMe(data){
   const subs = data.submissions || [];
   if(!subs.length){ status.textContent = "No submissions yet."; status.style.display = "block"; return; }
   document.getElementById("meBody").innerHTML = subs.map(r=>{
-    const date = String(r.created_at || "").slice(0,10);
+    const date = String(r.activity_date || r.created_at || "").slice(0,10);
     return `<tr>
       <td>${esc(date)}</td>
       <td>${esc(r.target_format || "—")}</td>
@@ -1928,10 +1963,48 @@ async function submitRating(){
       }),
     });
     const data = await res.json();
-    if(data.success){ showRateStatus("ok","Rating saved ✓"); loadRatings(); }
+    if(data.success){
+      ratedThisSession.add(activityId);
+      markRatedOption(activityId);
+      resetRateSliders();
+      const next = nextUnratedActivity();
+      if(next){
+        const sel = document.getElementById("rateActivity");
+        sel.value = next;
+        const name = (state.byId[next] && state.byId[next].name) || next;
+        showRateStatus("ok", `Saved ✓ · ${ratedThisSession.size} rated this visit. Next up: ${name}`);
+      }else{
+        showRateStatus("ok", `Saved ✓ · you've rated every activity — thank you!`);
+      }
+      loadRatings();
+    }
     else showRateStatus("err", data.error || "Something went wrong.");
   }catch(err){ showRateStatus("err","Network error: " + err.message); }
   finally{ btn.disabled = false; }
+}
+// Rapid-rate helpers: mark what's been rated this visit and jump to the next
+// unrated activity so people can churn through several without reselecting.
+const ratedThisSession = new Set();
+function markRatedOption(activityId){
+  const opt = document.querySelector(`#rateActivity option[value="${CSS.escape(activityId)}"]`);
+  if(opt && !opt.dataset.rated){ opt.dataset.rated = "1"; opt.textContent = "✓ " + opt.textContent; }
+}
+function nextUnratedActivity(){
+  const sel = document.getElementById("rateActivity");
+  const opts = [...sel.querySelectorAll("option")].filter(o=>o.value);
+  const curVal = sel.value;
+  const start = Math.max(0, opts.findIndex(o=>o.value===curVal));
+  for(let k=1;k<=opts.length;k++){
+    const o = opts[(start+k)%opts.length];
+    if(!o.dataset.rated) return o.value;
+  }
+  return "";
+}
+function resetRateSliders(){
+  [["rateFun","rateFunVal"],["rateOrig","rateOrigVal"],["rateDiff","rateDiffVal"]].forEach(([inp,out])=>{
+    document.getElementById(inp).value = 5;
+    document.getElementById(out).textContent = "5";
+  });
 }
 async function loadRatings(){
   try{
@@ -2010,6 +2083,9 @@ function buildPayload(){
     displayName: val("displayName"),
     team: val("team"),
     usualCommuteMode: usualCommute(),
+    usualCommuteKm1: parseFloat(val("commuteKm1")) || 0,
+    usualCommuteKm2: parseFloat(val("commuteKm2")) || 0,
+    activityDate: val("commuteDate"),
     targetDistanceKm: round2(t.total),
     targetFormat: FORMATS[state.format].label,
     targetSwimKm: round2(t.swim),
@@ -2096,7 +2172,11 @@ async function showRankCard(email){
   const card = document.getElementById("rankCard");
   try{
     const [meRes, lbRes] = await Promise.all([
-      fetch("/api/me?email=" + encodeURIComponent(email)),
+      fetch("/api/me", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ email }),
+      }),
       fetch("/api/leaderboard"),
     ]);
     const me = await meRes.json();
