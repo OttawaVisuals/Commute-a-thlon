@@ -220,14 +220,14 @@ details.panel[open] > summary.phead .summary-toggle{
 }
 .info-btn:hover,.info-btn:focus-visible{border-color:var(--ink);color:var(--ink)}
 .info-btn .tip{
-  position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px);
-  width:250px;max-width:60vw;background:var(--ink);color:var(--paper);
+  position:fixed;top:0;left:0;
+  width:300px;max-width:calc(100vw - 24px);background:var(--ink);color:var(--paper);
   font-family:Inter,sans-serif;font-size:12px;font-weight:400;line-height:1.4;
-  text-transform:none;letter-spacing:0;text-align:left;
-  padding:8px 10px;border-radius:var(--radius-sm);box-shadow:var(--shadow-pop);
-  opacity:0;visibility:hidden;transition:opacity .12s ease, transform .12s ease;z-index:20;
+  text-transform:none;letter-spacing:0;text-align:left;white-space:normal;
+  padding:9px 11px;border-radius:var(--radius-sm);box-shadow:var(--shadow-pop);
+  opacity:0;visibility:hidden;transition:opacity .12s ease;z-index:300;pointer-events:none;
 }
-.info-btn:hover .tip,.info-btn:focus-visible .tip{opacity:1;visibility:visible;transform:translate(-50%,0)}
+.info-btn:hover .tip,.info-btn:focus-visible .tip{opacity:1;visibility:visible}
 
 /* ---- horizontal stacked bars (all three reuse this) ---- */
 .stackbar-block{margin-top:6px}
@@ -245,16 +245,16 @@ details.panel[open] > summary.phead .summary-toggle{
 .stackbar-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px}
 .stackbar-legend.below{margin-top:5px}
 .stackbar-legend.inline{flex:none;gap:4px 10px;font-size:11px}
-.stackbar-legend .lg{display:flex;align-items:center;gap:5px;color:var(--muted);font-weight:600;white-space:nowrap}
-.stackbar-legend .sw{width:9px;height:9px;border-radius:50%;flex:none}
+.stackbar-legend .lg{display:flex;align-items:center;color:var(--muted);font-weight:600;white-space:nowrap}
+.stackbar-legend .sw{width:9px;height:9px;border-radius:50%;flex:none;margin-right:5px}
 @media(max-width:700px){.stackbar-head{flex-wrap:wrap}.stackbar-legend.inline{order:3;width:100%}}
 
 /* map — fills the content column, height = width × 0.8 */
 #map{width:100%;height:min(46vh,430px);border:1.5px solid var(--line);border-radius:var(--radius);z-index:1}
 .map-tools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;align-items:center}
-.pen{display:inline-flex;align-items:center;gap:7px;border:1.5px solid var(--line);background:#fff;
+.pen{display:inline-flex;align-items:center;border:1.5px solid var(--line);background:#fff;
   padding:6px 13px;border-radius:var(--radius-pill);cursor:pointer;font-weight:700;font-size:13px;transition:box-shadow .12s ease}
-.pen .dot{width:10px;height:10px;border-radius:50%;flex:none}
+.pen .dot{width:10px;height:10px;border-radius:50%;flex:none;margin-right:7px}
 .pen[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink)}
 .pen.swim .dot{background:var(--swim)} .pen.bike .dot{background:var(--bike)} .pen.run .dot{background:var(--run)}
 .map-readout{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;font-family:"IBM Plex Mono",monospace;font-size:13px}
@@ -286,9 +286,9 @@ details.panel[open] > summary.phead .summary-toggle{
 .rowmeta.hide{display:none}
 .wq-field{grid-column:1/-1}
 .wq-field.hide{display:none}
-.wq-pill{display:inline-flex;align-items:center;gap:5px;font-family:Inter,sans-serif;font-weight:700;
+.wq-pill{display:inline-flex;align-items:center;font-family:Inter,sans-serif;font-weight:700;
   font-size:11px;padding:3px 9px;border-radius:var(--radius-pill);text-transform:none;letter-spacing:0}
-.wq-pill .dot{width:7px;height:7px;border-radius:50%;flex:none;background:currentColor}
+.wq-pill .dot{width:7px;height:7px;border-radius:50%;flex:none;background:currentColor;margin-right:5px}
 .wq-pill.good{background:#e5f6ea;color:#186b3a}
 .wq-pill.caution{background:#fdf1dc;color:#8a5a0a}
 .wq-pill.avoid{background:#fbe6e9;color:#9c2038}
@@ -297,8 +297,8 @@ details.panel[open] > summary.phead .summary-toggle{
 /* water quality map — square, capped so it doesn't take over ultra-wide screens */
 #wqMap{width:100%;height:min(46vh,430px);border:1.5px solid var(--line);border-radius:var(--radius);z-index:1}
 .wq-legend{display:flex;flex-wrap:wrap;gap:14px;margin:10px 0;font-size:12px;font-weight:600;color:var(--muted)}
-.wq-legend .lg{display:flex;align-items:center;gap:6px}
-.wq-legend .sw{width:11px;height:11px;border-radius:50%;flex:none;border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
+.wq-legend .lg{display:flex;align-items:center}
+.wq-legend .sw{width:11px;height:11px;border-radius:50%;flex:none;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);margin-right:6px}
 .wq-tooltip{font-family:Inter,sans-serif}
 .wq-tooltip .head{font-weight:700;font-family:"Space Grotesk",sans-serif;margin-bottom:3px}
 .wq-tooltip .sub{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:6px 0 2px}
@@ -956,6 +956,7 @@ async function init(){
   wireTabs();
   wireCollapsibles();
   wireAnnouncements();
+  wireTooltips();
   document.body.classList.add("tab-log");
 
   addActivityRow();          // start with one row
@@ -985,6 +986,28 @@ function restoreSavedEmail(){
     if(!el) return;
     if(saved && !el.value) el.value = saved;
     el.addEventListener("input", ()=> saveEmail(el.value.trim()));
+  });
+}
+
+// Tooltips are position:fixed and placed by JS so they can never be clipped by
+// the page edge or hidden behind the sticky tab bar. Centered over the ? button,
+// clamped into the viewport, above by default and flipped below if there's no room.
+function positionTip(btn){
+  const tip = btn.querySelector(".tip");
+  if(!tip) return;
+  const b = btn.getBoundingClientRect();
+  const tw = tip.offsetWidth, th = tip.offsetHeight, gap = 8, pad = 10;
+  let left = b.left + b.width / 2 - tw / 2;
+  left = Math.max(pad, Math.min(left, window.innerWidth - tw - pad));
+  let top = b.top - th - gap;
+  if(top < pad) top = b.bottom + gap;   // flip below when there's no room above
+  tip.style.left = left + "px";
+  tip.style.top = top + "px";
+}
+function wireTooltips(){
+  document.querySelectorAll(".info-btn").forEach(btn=>{
+    btn.addEventListener("mouseenter", ()=> positionTip(btn));
+    btn.addEventListener("focus", ()=> positionTip(btn));
   });
 }
 
