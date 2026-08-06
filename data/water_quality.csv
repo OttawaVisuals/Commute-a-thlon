@@ -6910,6 +6910,16 @@ date,time,site,latitude,longitude,source,metric_type,parameter,value,unit,flag
 2026-07-28,,Petrie East Bay,45.506325,-75.487879,City of Ottawa / Ottawa Public Health,weekly_geomean,ecoli_cfu_100ml,27,cfu/100mL,Beach water met provincial E. coli standard
 2026-07-28,,Petrie River,45.506325,-75.487879,City of Ottawa / Ottawa Public Health,weekly_geomean,ecoli_cfu_100ml,34,cfu/100mL,Beach water met provincial E. coli standard
 2026-07-28,,Westboro,45.395397,-75.761271,City of Ottawa / Ottawa Public Health,weekly_geomean,ecoli_cfu_100ml,678,cfu/100mL,Beach water did not meet the provincial E. coli standard. E. coli levels were more than twice the provincial E. coli standard.
+2026-07-30,,Britannia,45.365073,-75.801513,City of Ottawa / Ottawa Public Health,weekly_geomean,ecoli_cfu_100ml,-,cfu/100mL,N/A
+2026-07-30,,Britannia,45.365073,-75.801513,City of Ottawa / Ottawa Public Health,weekly_geomean,ecoli_cfu_100ml,47,cfu/100mL,Beach water met provincial E. coli standard
+2026-07-30,,Mooney's Bay,45.366844,-75.692678,City of Ottawa / Ottawa Public Health,weekly_geomean,ecoli_cfu_100ml,414,cfu/100mL,Beach water did not meet the provincial E. coli standard. E. coli levels were more than twice the provincial E. coli standard.
+2026-07-30,,Mooney's Bay,45.366844,-75.692678,City of Ottawa / Ottawa Public Health,weekly_geomean,ecoli_cfu_100ml,449,cfu/100mL,Beach water did not meet the provincial E. coli standard. E. coli levels were more than twice the provincial E. coli standard.
+2026-07-30,,Petrie East Bay,45.506325,-75.487879,City of Ottawa / Ottawa Public Health,weekly_geomean,ecoli_cfu_100ml,-,cfu/100mL,N/A
+2026-07-30,,Petrie East Bay,45.506325,-75.487879,City of Ottawa / Ottawa Public Health,weekly_geomean,ecoli_cfu_100ml,412,cfu/100mL,Beach water did not meet the provincial E. coli standard. E. coli levels were more than twice the provincial E. coli standard.
+2026-07-30,,Petrie River,45.506325,-75.487879,City of Ottawa / Ottawa Public Health,weekly_geomean,ecoli_cfu_100ml,-,cfu/100mL,N/A
+2026-07-30,,Petrie River,45.506325,-75.487879,City of Ottawa / Ottawa Public Health,weekly_geomean,ecoli_cfu_100ml,264,cfu/100mL,Beach water did not meet provincial E. coli standard
+2026-07-30,,Westboro,45.395397,-75.761271,City of Ottawa / Ottawa Public Health,weekly_geomean,ecoli_cfu_100ml,34,cfu/100mL,Beach water met provincial E. coli standard
+2026-07-30,,Westboro,45.395397,-75.761271,City of Ottawa / Ottawa Public Health,weekly_geomean,ecoli_cfu_100ml,60,cfu/100mL,Beach water met provincial E. coli standard
 2027-06-23,11:50,Lac Beauchamp,45.490652,-75.622171,Ottawa Riverkeeper,single_sample,ecoli_cfu_100ml,8,cfu/100mL,
 2027-06-23,11:50,Lac Beauchamp,45.490652,-75.622171,Ottawa Riverkeeper,single_sample,total_coliform_cfu_100ml,1209,cfu/100mL,
 2027-06-23,11:50,Lac Beauchamp,45.490652,-75.622171,Ottawa Riverkeeper,single_sample,water_temp_c,24,deg C,
